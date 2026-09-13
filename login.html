@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — JUNIOR</title>
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --ink:#0B0B0C;
+  --paper:#FFFFFF;
+  --haze:#F2F2F0;
+  --line:#DCDCDA;
+  --mute:#77777A;
+  --cobalt:#1B4DE4;
+  --flag:#D93025;
+
+  --f:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font:15px/1.5 var(--f);
+  color:var(--ink);
+  background:var(--paper);
+  -webkit-font-smoothing:antialiased;
+}
+button{ font:inherit; cursor:pointer; }
+:focus-visible{ outline:2px solid var(--cobalt); outline-offset:3px; }
+.sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+/* ============================================================
+   STAGE
+   ============================================================ */
+.stage{ min-height:100%; display:grid; grid-template-columns:1fr; }
+@media (min-width:900px){
+  .stage{ grid-template-columns:1.05fr 1fr; }
+}
+
+/* ---------- Left: brand panel ---------- */
+.brand{
+  position:relative; overflow:hidden;
+  background:var(--ink); color:var(--paper);
+  padding:clamp(28px,4vw,52px);
+  display:flex; flex-direction:column; justify-content:space-between;
+  min-height:230px;
+}
+.brand__eyebrow{
+  font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+  color:rgba(255,255,255,.55);
+  position:relative; z-index:2;
+}
+.brand__mark{ position:relative; z-index:2; margin:clamp(24px,5vh,60px) 0; }
+.brand__mark span{
+  display:block; overflow:hidden;
+}
+.brand__mark i{
+  display:block; font-style:normal;
+  font-weight:900; text-transform:uppercase;
+  font-size:clamp(46px,8.5vw,104px);
+  line-height:.86; letter-spacing:-.045em;
+  transform:translateY(105%);
+  animation:rise .85s var(--ease) forwards;
+}
+.brand__mark span:nth-child(2) i{ animation-delay:.08s; }
+.brand__mark span:nth-child(3) i{
+  animation-delay:.16s;
+  color:transparent; -webkit-text-stroke:1.5px rgba(255,255,255,.5);
+}
+@keyframes rise{ to{ transform:none; } }
+
+.brand__rule{
+  width:52px; height:3px; background:var(--cobalt);
+  position:relative; z-index:2; margin-bottom:18px;
+}
+.brand__note{
+  position:relative; z-index:2;
+  max-width:34ch; font-size:14px; color:rgba(255,255,255,.62);
+}
+
+/* Diagonal marquee — the signature */
+.brand__band{
+  position:absolute; z-index:1;
+  left:-30%; right:-30%; top:52%;
+  transform:rotate(-14deg);
+  opacity:.07; pointer-events:none;
+}
+.brand__band div{
+  display:flex; gap:36px; width:max-content;
+  animation:drift 30s linear infinite;
+}
+.brand__band b{
+  font-weight:900; font-size:clamp(58px,10vw,124px);
+  letter-spacing:-.05em; text-transform:uppercase; white-space:nowrap;
+}
+@keyframes drift{ to{ transform:translateX(-50%); } }
+
+/* Status line */
+.status{
+  position:relative; z-index:2;
+  display:flex; align-items:center; gap:10px;
+  font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(255,255,255,.5);
+}
+.status__dot{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--cobalt); flex:none;
+  animation:pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
+
+/* ---------- Right: panel ---------- */
+.panel{
+  display:grid; place-items:center;
+  padding:clamp(28px,5vw,56px);
+  background:var(--paper);
+}
+.card{ width:100%; max-width:392px; }
+
+.card__kicker{
+  font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--mute); margin-bottom:12px;
+}
+.card__title{
+  margin:0 0 10px;
+  font-weight:900; text-transform:uppercase;
+  font-size:clamp(28px,3.6vw,40px); line-height:.95; letter-spacing:-.025em;
+}
+.card__lede{ margin:0 0 30px; color:var(--mute); font-size:14px; }
+
+/* Buttons */
+.btn{
+  width:100%; height:52px;
+  display:inline-flex; align-items:center; justify-content:center; gap:11px;
+  border:2px solid var(--ink); background:var(--ink); color:var(--paper);
+  font-size:13px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  transition:background .18s var(--ease), color .18s var(--ease);
+}
+.btn:hover{ background:transparent; color:var(--ink); }
+.btn--ghost{ background:transparent; color:var(--ink); border-color:var(--line); }
+.btn--ghost:hover{ background:var(--haze); color:var(--ink); border-color:var(--ink); }
+.btn[disabled]{ opacity:.45; pointer-events:none; }
+.btn + .btn{ margin-top:11px; }
+.btn svg{ width:18px; height:18px; flex:none; }
+
+.divider{
+  display:flex; align-items:center; gap:14px;
+  margin:22px 0; color:var(--mute);
+  font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+}
+.divider::before,.divider::after{
+  content:""; flex:1; height:1px; background:var(--line);
+}
+
+.foot{
+  margin-top:28px; padding-top:18px; border-top:1px solid var(--line);
+  font-size:12px; color:var(--mute); line-height:1.6;
+}
+
+/* ---------- Signed-in state ---------- */
+.me{
+  display:flex; align-items:center; gap:14px;
+  padding:16px; background:var(--haze); margin-bottom:22px;
+}
+.me img{ width:46px; height:46px; border-radius:50%; flex:none; }
+.me__fallback{
+  width:46px; height:46px; border-radius:50%; flex:none;
+  background:var(--ink); color:var(--paper);
+  display:grid; place-items:center;
+  font-weight:900; font-size:17px;
+}
+.me__text{ min-width:0; }
+.me__text b{ display:block; font-size:15px; font-weight:700; }
+.me__text small{
+  display:block; font-size:13px; color:var(--mute);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.badge{
+  display:inline-block; margin-bottom:12px;
+  background:var(--cobalt); color:#fff;
+  font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  padding:5px 9px;
+}
+
+/* ---------- Error ---------- */
+.alert{
+  border-left:3px solid var(--flag);
+  background:#FDF3F2; padding:13px 15px; margin-bottom:22px;
+}
+.alert b{
+  display:block; font-size:11px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--flag);
+  margin-bottom:5px;
+}
+.alert span{ font-size:13px; color:#5A4340; word-break:break-word; }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  .brand__mark i{ transform:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <aside class="brand">
+    <div class="brand__band" aria-hidden="true">
+      <div>
+        <b>Junior</b><b>Junior</b><b>Junior</b><b>Junior</b>
+        <b>Junior</b><b>Junior</b><b>Junior</b><b>Junior</b>
+      </div>
+    </div>
+
+    <p class="brand__eyebrow">Members area</p>
+
+    <div class="brand__mark" aria-label="Junior">
+      <span><i>Run</i></span>
+      <span><i>The</i></span>
+      <span><i>Block</i></span>
+    </div>
+
+    <div>
+      <div class="brand__rule"></div>
+      <p class="brand__note">Sign in to see member pricing, save your size, and get first access to new drops.</p>
+      <p class="status" style="margin-top:22px">
+        <span class="status__dot"></span>
+        <span id="status-text">Ready</span>
+      </p>
+    </div>
+  </aside>
+
+  <main class="panel">
+    <div class="card" id="card"><!-- rendered by script --></div>
+  </main>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Config ---------- */
+  var DOMAIN       = "https://us-west-2txsotz2bf.auth.us-west-2.amazoncognito.com";
+  var CLIENT_ID    = "36hh283aab5pa8daoifu7aecpl";
+  var REDIRECT_URI = window.location.origin + "/callback.html";
+  var LOGOUT_URI   = window.location.origin + "/login.html";
+  var STORE        = "/junior.html";
+  var SCOPES       = "openid email profile";
+
+  var card   = document.getElementById("card");
+  var status = document.getElementById("status-text");
+
+  function setStatus(text) { status.textContent = text; }
+
+  /* ---------- PKCE ---------- */
+
+  function base64url(buffer) {
+    var bytes = new Uint8Array(buffer), bin = "";
+    for (var i = 0; i < bytes.length; i++) { bin += String.fromCharCode(bytes[i]); }
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function randomString(len) {
+    return base64url(crypto.getRandomValues(new Uint8Array(len)));
+  }
+
+  function challengeFrom(verifier) {
+    return crypto.subtle
+      .digest("SHA-256", new TextEncoder().encode(verifier))
+      .then(base64url);
+  }
+
+  /* ---------- Token reading (display only) ----------
+     These claims are decoded, not verified. Anything that
+     actually protects a resource must check the signature
+     against the pool's JWKS on a server.                  */
+
+  function readIdToken() {
+    var token = sessionStorage.getItem("id_token");
+    if (!token) { return null; }
+    try {
+      var part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      var json = decodeURIComponent(
+        atob(part).split("").map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join("")
+      );
+      var claims = JSON.parse(json);
+      if (claims.exp && claims.exp * 1000 < Date.now()) {
+        sessionStorage.clear();
+        return null;
+      }
+      return claims;
+    } catch (e) {
+      sessionStorage.clear();
+      return null;
+    }
+  }
+
+  /* ---------- Actions ---------- */
+
+  function signIn(useGoogle) {
+    setStatus("Redirecting");
+    var verifier = randomString(32);
+    var state    = randomString(16);
+
+    challengeFrom(verifier).then(function (challenge) {
+      sessionStorage.setItem("pkce_verifier", verifier);
+      sessionStorage.setItem("pkce_state", state);
+      sessionStorage.setItem("post_login", "/login.html");
+
+      var q = new URLSearchParams({
+        response_type:         "code",
+        client_id:             CLIENT_ID,
+        redirect_uri:          REDIRECT_URI,
+        scope:                 SCOPES,
+        state:                 state,
+        code_challenge:        challenge,
+        code_challenge_method: "S256"
+      });
+      if (useGoogle) { q.set("identity_provider", "Google"); }
+
+      window.location.href = DOMAIN + "/oauth2/authorize?" + q.toString();
+    }).catch(function (err) {
+      setStatus("Failed");
+      renderSignedOut("Browser error", err.message);
+    });
+  }
+
+  function signOut() {
+    sessionStorage.clear();
+    var q = new URLSearchParams({ client_id: CLIENT_ID, logout_uri: LOGOUT_URI });
+    window.location.href = DOMAIN + "/logout?" + q.toString();
+  }
+
+  /* ---------- Rendering ---------- */
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls)  { n.className = cls; }
+    if (text) { n.textContent = text; }
+    return n;
+  }
+
+  var GOOGLE_G =
+    '<svg viewBox="0 0 48 48" aria-hidden="true">' +
+    '<path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.7l7.8 6.1C12.3 13.7 17.6 9.5 24 9.5z"/>' +
+    '<path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-2.8-.4-4.1H24v8.1h12.7c-.3 2.1-1.6 5.3-4.7 7.4l7.6 5.9c4.5-4.2 6.9-10.3 6.9-17.3z"/>' +
+    '<path fill="#FBBC05" d="M10.4 28.2a14.8 14.8 0 010-8.4l-7.8-6.1a24 24 0 000 20.6l7.8-6.1z"/>' +
+    '<path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.3-5.6l-7.6-5.9c-2 1.4-4.7 2.4-7.7 2.4-6.4 0-11.7-4.2-13.6-10.2l-7.8 6.1C6.5 42.1 14.6 47.5 24 47.5z"/>' +
+    '</svg>';
+
+  function renderSignedOut(errTitle, errText) {
+    card.innerHTML = "";
+    setStatus(errTitle ? "Error" : "Ready");
+
+    if (errTitle) {
+      var alert = el("div", "alert");
+      alert.appendChild(el("b", null, errTitle));
+      alert.appendChild(el("span", null, errText));
+      card.appendChild(alert);
+    }
+
+    card.appendChild(el("p", "card__kicker", "Junior Store"));
+    card.appendChild(el("h1", "card__title", "Sign in"));
+    card.appendChild(el("p", "card__lede",
+      "Use your Google account. No new password to remember."));
+
+    var google = el("button", "btn");
+    google.type = "button";
+    google.innerHTML = GOOGLE_G + "<span>Continue with Google</span>";
+    google.addEventListener("click", function () { signIn(true); });
+    card.appendChild(google);
+
+    card.appendChild(el("div", "divider", "or"));
+
+    var email = el("button", "btn btn--ghost", "Use an email address");
+    email.type = "button";
+    email.addEventListener("click", function () { signIn(false); });
+    card.appendChild(email);
+
+    var foot = el("div", "foot");
+    foot.textContent =
+      "Authentication is handled by Amazon Cognito using OAuth 2.0 with PKCE. " +
+      "This page never sees your password.";
+    card.appendChild(foot);
+  }
+
+  function renderSignedIn(claims) {
+    setStatus("Signed in");
+    card.innerHTML = "";
+
+    card.appendChild(el("span", "badge", "Member"));
+    card.appendChild(el("h1", "card__title", "You're in"));
+    card.appendChild(el("p", "card__lede", "Your session is active in this tab."));
+
+    var me = el("div", "me");
+    if (claims.picture) {
+      var img = document.createElement("img");
+      img.src = claims.picture;
+      img.alt = "";
+      img.referrerPolicy = "no-referrer";
+      me.appendChild(img);
+    } else {
+      var initial = (claims.name || claims.email || "?").trim().charAt(0).toUpperCase();
+      me.appendChild(el("div", "me__fallback", initial));
+    }
+    var text = el("div", "me__text");
+    text.appendChild(el("b", null, claims.name || claims.given_name || "Signed in"));
+    text.appendChild(el("small", null, claims.email || ""));
+    me.appendChild(text);
+    card.appendChild(me);
+
+    var go = el("button", "btn", "Continue to the store");
+    go.type = "button";
+    go.addEventListener("click", function () { window.location.href = STORE; });
+    card.appendChild(go);
+
+    var out = el("button", "btn btn--ghost", "Sign out");
+    out.type = "button";
+    out.addEventListener("click", signOut);
+    card.appendChild(out);
+
+    var foot = el("div", "foot");
+    foot.textContent = "Signed in via " +
+      (claims.identities && claims.identities[0] ? claims.identities[0].providerName : "Cognito") +
+      ". Tokens are held in this tab only and are cleared when it closes.";
+    card.appendChild(foot);
+  }
+
+  /* ---------- Boot ---------- */
+
+  if (!window.crypto || !crypto.subtle) {
+    renderSignedOut("Insecure context",
+      "This page must be served over HTTPS or from localhost for sign-in to work.");
+    return;
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("error")) {
+    renderSignedOut("Sign-in failed",
+      params.get("error") + " — " + (params.get("error_description") || "No detail provided."));
+    history.replaceState({}, "", window.location.pathname);
+    return;
+  }
+
+  var claims = readIdToken();
+  if (claims) { renderSignedIn(claims); } else { renderSignedOut(); }
+})();
+</script>
+</body>
+</html>

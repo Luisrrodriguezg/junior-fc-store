@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signing you in</title>
+<style>
+  *,*::before,*::after{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh;
+    display:grid; place-items:center;
+    font:15px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:#fff; color:#000;
+  }
+  .box{ text-align:center; padding:24px; max-width:460px; }
+  .spinner{
+    width:34px; height:34px; margin:0 auto 20px;
+    border:3px solid #e3e3e3; border-top-color:#000; border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  h1{
+    font-size:13px; font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; margin:0 0 8px;
+  }
+  p{ margin:0; color:#767677; font-size:14px; word-break:break-word; }
+  .error .spinner{ display:none; }
+  .error h1{ color:#e32b2b; }
+  a.btn{
+    display:inline-block; margin-top:20px; padding:11px 22px;
+    background:#000; color:#fff; text-decoration:none;
+    font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  }
+  a.btn:hover{ background:#333; }
+  @media (prefers-reduced-motion:reduce){ .spinner{ animation-duration:2s; } }
+</style>
+</head>
+<body>
+
+<div class="box" id="box">
+  <div class="spinner"></div>
+  <h1 id="title">Signing you in</h1>
+  <p id="detail">One moment.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DOMAIN       = "https://us-west-2txsotz2bf.auth.us-west-2.amazoncognito.com";
+  var CLIENT_ID    = "36hh283aab5pa8daoifu7aecpl";
+  var REDIRECT_URI = window.location.origin + "/callback.html";
+  // Whichever page started the sign-in tells us where to return.
+  var HOME         = sessionStorage.getItem("post_login") || "/login.html";
+
+  var box    = document.getElementById("box");
+  var title  = document.getElementById("title");
+  var detail = document.getElementById("detail");
+
+  function fail(heading, text) {
+    box.className = "box error";
+    title.textContent = heading;
+    detail.textContent = text;
+    var a = document.createElement("a");
+    a.className = "btn";
+    a.href = HOME;
+    a.textContent = "Back to the store";
+    box.appendChild(a);
+  }
+
+  var params = new URLSearchParams(window.location.search);
+
+  // Cognito reports IdP problems here rather than sending a code.
+  if (params.get("error")) {
+    fail("Sign-in failed",
+         params.get("error") + " — " + (params.get("error_description") || "No detail provided."));
+    return;
+  }
+
+  var code     = params.get("code");
+  var state    = params.get("state");
+  var verifier = sessionStorage.getItem("pkce_verifier");
+  var expected = sessionStorage.getItem("pkce_state");
+
+  if (!code) {
+    fail("Nothing to exchange", "No authorization code was returned. Start the sign-in from the store page.");
+    return;
+  }
+  if (!verifier) {
+    fail("Session expired", "The PKCE verifier is missing from this browser tab. Start the sign-in again.");
+    return;
+  }
+  if (state !== expected) {
+    fail("State mismatch", "The state value doesn't match what this tab sent. Start the sign-in again.");
+    return;
+  }
+
+  fetch(DOMAIN + "/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type:    "authorization_code",
+      client_id:     CLIENT_ID,
+      code:          code,
+      redirect_uri:  REDIRECT_URI,
+      code_verifier: verifier
+    })
+  })
+  .then(function (res) {
+    return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+  })
+  .then(function (r) {
+    if (!r.ok) {
+      fail("Token exchange rejected",
+           (r.data.error || "unknown_error") + " — " + (r.data.error_description || "Check the app client's callback URL and scopes."));
+      return;
+    }
+
+    sessionStorage.setItem("id_token", r.data.id_token);
+    sessionStorage.setItem("access_token", r.data.access_token);
+    if (r.data.refresh_token) {
+      sessionStorage.setItem("refresh_token", r.data.refresh_token);
+    }
+
+    sessionStorage.removeItem("pkce_verifier");
+    sessionStorage.removeItem("pkce_state");
+    sessionStorage.removeItem("post_login");
+
+    // replace() keeps the ?code= URL out of session history.
+    window.location.replace(HOME);
+  })
+  .catch(function (err) {
+    fail("Network error", err.message);
+  });
+})();
+</script>
+</body>
+</html>
