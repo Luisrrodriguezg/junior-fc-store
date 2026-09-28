@@ -661,6 +661,197 @@
   }
   .srcbar code { font-family: ui-monospace, Menlo, monospace; }
   .srcbar[hidden] { display: none; }
+
+  /* ── Shared form bits (personalización + boletería) ───── */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field label {
+    font-size: 0.72rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .field input, .field select {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 12px;
+    font: inherit; font-size: 0.9rem;
+    background: #fff;
+    outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--ink); }
+  .field small { color: var(--body); font-size: 0.74rem; }
+  .form-error { color: var(--red); font-size: 0.82rem; font-weight: 600; min-height: 1.3em; margin-bottom: 10px; }
+  .btn-primary {
+    background: var(--red); color: #fff;
+    padding: 13px 20px;
+    font-weight: 800; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    border-radius: var(--radius);
+  }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-primary:disabled { background: var(--line); color: var(--body); cursor: not-allowed; }
+  .btn-ghost {
+    border: 1px solid var(--line);
+    padding: 12px 18px;
+    font-weight: 700; font-size: 0.76rem;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    border-radius: var(--radius);
+    background: #fff;
+  }
+  .btn-ghost:hover { border-color: var(--ink); }
+
+  /* ── Personalización (Lambda) ─────────────────────────── */
+  .card .customize {
+    margin-top: 6px;
+    border: 1px solid var(--ink);
+    padding: 10px;
+    font-size: 0.72rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    border-radius: var(--radius);
+  }
+  .card .customize:hover { background: var(--ink); color: #fff; }
+  .custom-tag {
+    position: absolute; bottom: 10px; left: 10px;
+    background: var(--red); color: #fff;
+    font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em;
+    padding: 4px 8px; border-radius: 2px;
+  }
+  .line .meta .custom-note { font-size: 0.74rem; color: var(--red); font-weight: 700; }
+
+  dialog.modal {
+    border: 0; padding: 0;
+    border-radius: 8px;
+    width: min(760px, calc(100% - 32px));
+    max-height: calc(100% - 32px);
+    margin: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    color: var(--ink);
+  }
+  dialog.modal::backdrop { background: rgba(17,22,28,0.55); }
+  .modal > header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal > header h2 { font-size: 1rem; text-transform: uppercase; font-weight: 800; }
+  .custom-body { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px; }
+  @media (max-width: 680px) { .custom-body { grid-template-columns: 1fr; } }
+  .custom-preview {
+    background: var(--wash);
+    border-radius: var(--radius);
+    display: grid; place-items: center;
+    padding: 12px;
+  }
+  .custom-preview svg { width: 100%; max-width: 300px; }
+  .price-line { display: flex; justify-content: space-between; gap: 12px; font-size: 0.86rem; padding: 3px 0; }
+  .price-line.total { font-weight: 800; border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; }
+  .custom-hint { font-size: 0.78rem; color: var(--body); min-height: 1.2em; margin: 4px 0 8px; }
+  .mine { padding: 0 20px 20px; }
+  .mine h3 { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+  .mine-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    font-size: 0.84rem;
+  }
+  .mine-item button { font-size: 0.74rem; font-weight: 700; color: var(--red); }
+
+  /* ── Boletería (OpenShift) ────────────────────────────── */
+  .boleteria { background: var(--wash); padding: 62px 0; }
+  /* Anchors and scrollIntoView land below the sticky header, not under it. */
+  #boleteria, #myTickets { scroll-margin-top: 84px; }
+  .matches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 860px) { .matches { grid-template-columns: 1fr; } }
+  .match {
+    background: #fff;
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: left;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .match:hover { border-color: var(--line); }
+  .match[aria-pressed="true"] { border-color: var(--red); }
+  .match .comp, .ticket .comp {
+    font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--body);
+  }
+  .match strong { font-size: 1rem; }
+  .match .when { font-size: 0.82rem; }
+  .match .from { font-size: 0.8rem; font-weight: 700; margin-top: 6px; }
+  .tix-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 980px) { .tix-layout { grid-template-columns: 1fr; } }
+  .tix-layout[hidden] { display: none; }
+  .panel { background: #fff; border-radius: var(--radius); padding: 18px; }
+  .panel h3 {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
+    margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  }
+  .panel h3 small { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--body); font-size: 0.74rem; }
+  .live { display: inline-flex; align-items: center; gap: 6px; }
+  .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .stadium svg { width: 100%; height: auto; display: block; }
+  .stadium .sec { stroke: #fff; stroke-width: 1.5; cursor: pointer; transition: fill 0.5s ease, opacity 0.3s ease; }
+  .stadium .sec:hover, .stadium .sec:focus-visible { stroke: var(--ink); stroke-width: 2; outline: none; }
+  .stadium .sec.dim { opacity: 0.4; }
+  .stadium .sec.mine-sold { stroke: var(--ink); stroke-width: 3; }
+  .stadium .sec.mine-hold { stroke: var(--ink); stroke-width: 3; animation: seat-pulse 1.1s ease-in-out infinite; }
+  @keyframes seat-pulse { 50% { stroke-opacity: 0.2; } }
+  @media (prefers-reduced-motion: reduce) { .stadium .sec.mine-hold { animation: none; } }
+  .stadium .stand-label { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; fill: var(--body); }
+  .stadium .stand-label.on { fill: var(--red); }
+  .map-readout { font-size: 0.82rem; min-height: 1.4em; margin-top: 8px; }
+  .legend { display: flex; align-items: center; gap: 8px 14px; font-size: 0.74rem; color: var(--body); margin-top: 8px; flex-wrap: wrap; }
+  .legend .ramp { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .ramp i { width: 110px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, #f9e1e4, #d0021b 60%, #4d0009); }
+  .legend .mine-key i { display: inline-block; width: 14px; height: 10px; border: 2px solid var(--ink); border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+  .stand-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .stand-opt {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: left;
+    font-size: 0.76rem; color: var(--body);
+  }
+  .stand-opt strong { display: block; font-size: 0.86rem; color: var(--ink); }
+  .stand-opt .p { font-weight: 700; color: var(--ink); }
+  .stand-opt[aria-pressed="true"] { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+  .tix-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+  .hold { border: 2px solid var(--red); border-radius: var(--radius); padding: 14px; margin-top: 14px; }
+  .hold .seats { font-size: 1.05rem; font-weight: 800; margin: 2px 0 4px; }
+  .hold p { font-size: 0.84rem; }
+  .hold .meta { font-size: 0.74rem; color: var(--body); margin-top: 6px; }
+  .hold .timer { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--red); }
+  .hold .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .tickets-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 30px 0 12px; }
+  .tickets-head h3 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .ticket-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .ticket {
+    background: #fff;
+    border-radius: 8px;
+    border-left: 6px solid var(--red);
+    display: grid; grid-template-columns: 1fr 116px;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  .ticket.new { box-shadow: 0 0 0 2px var(--red); }
+  .ticket .t-info { padding: 14px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 2px; }
+  .ticket .t-info strong { font-size: 0.95rem; }
+  .ticket .t-seat { font-weight: 800; font-size: 0.88rem; margin-top: 6px; }
+  .ticket .t-code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; color: var(--body); margin-top: 6px; }
+  .ticket .t-qr { border-left: 2px dashed var(--line); display: grid; place-items: center; padding: 8px; }
+  .ticket .t-qr svg { width: 100px; height: 100px; }
+  .tix-note { color: var(--body); font-size: 0.86rem; }
+  #printArea { display: none; }
+  @media print {
+    body.printing > *:not(#printArea) { display: none !important; }
+    body.printing #printArea { display: block !important; }
+    body.printing .ticket-list { grid-template-columns: 1fr 1fr; }
+    body.printing .ticket { border: 1px solid #999; border-left: 6px solid var(--red); }
+  }
 </style>
 </head>
 <body>
@@ -765,6 +956,62 @@
     <div class="grid" id="grid"></div>
   </section>
 
+  <!-- Boletería: served by the "boleteria" container on OpenShift, through API Gateway. -->
+  <section class="boleteria" id="boleteria" aria-labelledby="tixTitle">
+    <div class="wrap">
+      <div class="block-head">
+        <div>
+          <h2 id="tixTitle">Boletería</h2>
+          <p>Partidos en el Metropolitano. Elige tribuna y cantidad: te asignamos las mejores sillas juntas
+            disponibles y te las guardamos 10 minutos mientras confirmas.</p>
+        </div>
+      </div>
+
+      <p class="panel tix-note" id="tixUnavailable" hidden>
+        La boletería no está disponible en este momento. El resto de la tienda funciona con normalidad.
+      </p>
+
+      <div class="matches" id="matches"></div>
+
+      <div class="tix-layout" id="tixLayout" hidden>
+        <div class="panel stadium">
+          <h3>Ocupación en vivo <small class="live" id="mapUpdated">Cargando…</small></h3>
+          <div id="stadiumMap"></div>
+          <p class="map-readout" id="mapReadout" aria-live="polite">Toca una sección para ver cuántas sillas quedan.</p>
+          <div class="legend">
+            <span class="ramp">Libre <i></i> Llena</span>
+            <span class="mine-key"><i></i>Tus sillas</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Compra tus boletas</h3>
+          <form id="tixForm" novalidate>
+            <div class="stand-options" id="standOptions" role="group" aria-label="Tribuna"></div>
+            <div class="tix-row">
+              <div class="field">
+                <label for="tixQty">Boletas</label>
+                <select id="tixQty">
+                  <option>1</option><option selected>2</option><option>3</option>
+                  <option>4</option><option>5</option><option>6</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="tixMax">Máximo por boleta</label>
+                <input id="tixMax" type="number" min="0" step="5000" inputmode="numeric" placeholder="Sin límite">
+              </div>
+            </div>
+            <p class="form-error" id="tixError" role="alert"></p>
+            <button class="btn-primary" type="submit" id="tixSearch">Buscar mejores sillas</button>
+          </form>
+          <div id="holdBox"></div>
+        </div>
+      </div>
+
+      <div id="myTickets"></div>
+    </div>
+  </section>
+
   <section class="members" id="members">
     <div class="wrap">
       <div>
@@ -829,7 +1076,7 @@
       </div>
       <div class="fcol">
         <h4>La tienda</h4>
-        <a href="#members">Club de hinchas</a><a href="#">Sobre nosotros</a>
+        <a href="#members">Club de hinchas</a><a href="#boleteria">Boletería</a><a href="#">Sobre nosotros</a>
         <a href="#">Trabaja con nosotros</a>
       </div>
     </div>
@@ -857,6 +1104,47 @@
     <button class="btn-checkout" id="checkoutBtn" disabled>Finalizar compra</button>
   </footer>
 </aside>
+
+<!-- Personalization: saved by the jfc-personalizacion Lambda, through API Gateway. -->
+<dialog class="modal" id="customDlg" aria-labelledby="customTitle">
+  <header>
+    <h2 id="customTitle">Personaliza tu camiseta</h2>
+    <button class="icon-btn" id="customClose" aria-label="Cerrar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </header>
+  <form id="customForm" novalidate>
+    <div class="custom-body">
+      <div class="custom-preview" id="customPreview" aria-hidden="true"></div>
+      <div>
+        <p class="cat-label" id="customProduct"></p>
+        <div class="field">
+          <label for="customName">Nombre</label>
+          <input id="customName" maxlength="12" autocomplete="off" placeholder="Ej. GARCÍA">
+          <small>Hasta 12 letras. Nombre y número son gratis para miembros del club.</small>
+        </div>
+        <div class="field">
+          <label for="customNumber">Número</label>
+          <input id="customNumber" type="number" min="1" max="99" inputmode="numeric" placeholder="1–99">
+        </div>
+        <div class="field">
+          <label for="customPatch">Parche</label>
+          <select id="customPatch"></select>
+        </div>
+        <p class="custom-hint" id="customHint"></p>
+        <div id="customPrice"></div>
+        <p class="form-error" id="customError" role="alert"></p>
+        <button class="btn-primary" type="submit" id="customSave">Guardar personalización</button>
+      </div>
+    </div>
+  </form>
+  <div class="mine" id="customMine"></div>
+</dialog>
+
+<!-- Tickets are copied here only while printing, so the printout holds nothing else. -->
+<div id="printArea"></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -891,6 +1179,13 @@ const CONFIG = {
     redirectUri: window.location.origin + '/callback.html',
     logoutUri:   window.location.origin + '/login.html',
     scope:       'openid email profile'
+  },
+
+  /* API Gateway HTTP API "junior-fc-api" (stack junior-fc-backend, output ApiUrl).
+     /personalizaciones → Lambda jfc-personalizacion
+     /boleteria/*        → "boleteria" container on OpenShift */
+  api: {
+    baseUrl: 'https://oohsjmnj57.execute-api.us-west-2.amazonaws.com'
   }
 };
 
@@ -1252,10 +1547,12 @@ function renderGrid() {
 
   grid.innerHTML = list.map(p => {
     const off = p.was ? Math.round((1 - p.price / p.was) * 100) : 0;
+    const mine = myCustoms.find(c => c.sku === p.sku);
     return `
     <article class="card" data-sku="${p.sku}">
       <div class="media">
         ${p.badge ? `<span class="badge ${p.badge}">${p.badge === 'new' ? 'Nuevo' : '-' + off + '%'}</span>` : ''}
+        ${mine ? `<span class="custom-tag">${esc(mine.nombre)} · ${esc(mine.numero)}</span>` : ''}
         <button class="wish" data-wish="${p.sku}" aria-pressed="${wishlist.has(p.sku)}"
                 aria-label="Agregar ${esc(p.name)} a favoritos">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -1272,6 +1569,9 @@ function renderGrid() {
           ${p.was ? `<span class="was">${money(p.was)}</span><span class="off">-${off}%</span>` : ''}
         </div>
         <button class="add" data-add="${p.sku}">Agregar al carrito</button>
+        ${CUSTOM.skus.has(p.sku)
+          ? `<button class="customize" data-custom="${p.sku}">${mine ? 'Editar nombre y número' : 'Personalizar'}</button>`
+          : ''}
       </div>
     </article>`;
   }).join('');
@@ -1288,11 +1588,14 @@ function renderGrid() {
   grid.querySelectorAll('[data-wish]').forEach(b =>
     b.addEventListener('click', () => toggleWish(b.dataset.wish, b)));
 
+  grid.querySelectorAll('[data-custom]').forEach(b =>
+    b.addEventListener('click', () => openCustomizer(b.dataset.custom)));
+
   /* Clicking anywhere on the card counts as opening the product — the
-     add-to-cart and wishlist buttons are their own actions and opt out. */
+     add-to-cart, wishlist and personalize buttons are their own actions and opt out. */
   grid.querySelectorAll('.card').forEach(card =>
     card.addEventListener('click', e => {
-      if (e.target.closest('[data-add], [data-wish]')) return;
+      if (e.target.closest('[data-add], [data-wish], [data-custom]')) return;
       const p = PRODUCTS.find(x => x.sku === card.dataset.sku);
       if (!p) return;
       analytics.track('select_item', { item_list_id: filter, items: [analytics.item(p)] });
@@ -1322,11 +1625,13 @@ function renderCart() {
   box.innerHTML = cart.map(l => {
     const p = PRODUCTS.find(x => x.sku === l.sku);
     if (!p) return '';
+    const mine = myCustoms.find(c => c.sku === p.sku);
     return `
     <div class="line">
       <div class="thumb">${productArt(p, { w: 160, sizes: '62px' })}</div>
       <div class="meta">
         <h3>${esc(p.name)}</h3>
+        ${mine ? `<p class="custom-note">Personalizada: ${esc(mine.nombre)} ${esc(mine.numero)}</p>` : ''}
         <p class="p">${money(p.price * l.qty)}</p>
         <div class="qty">
           <button data-dec="${p.sku}" aria-label="Quitar una unidad">−</button>
@@ -1482,6 +1787,683 @@ function renderAuth() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   BACKEND — API Gateway "junior-fc-api"
+
+   The id_token travels as a Bearer token and API Gateway's Cognito
+   JWT authorizer checks its signature, expiry and audience before any
+   backend runs. That is the real access control this static page
+   can't do by itself (see readSession above).
+   ═══════════════════════════════════════════════════════════════ */
+class ApiError extends Error {
+  constructor(status, code, message, detail) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.detail = detail || {};
+  }
+}
+
+/* auth: send the token (and go to login if there is none or the API
+   rejects it). quiet: background loads — fail silently instead of
+   navigating away while the visitor is just reading the page. */
+async function api(path, { method = 'GET', body, auth = false, quiet = false } = {}) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (auth) {
+    const token = session && sessionStorage.getItem('id_token');
+    if (!token) {
+      if (!quiet) goToAuth('login', 'api');
+      throw new ApiError(401, 'NO_AUTENTICADO', 'Inicia sesión para continuar.');
+    }
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let res;
+  try {
+    res = await fetch(CONFIG.api.baseUrl + path, {
+      method, headers,
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+  } catch (err) {
+    throw new ApiError(0, 'SIN_CONEXION', 'No pudimos conectar con el servidor. Revisa tu conexión.');
+  }
+  if (res.status === 204) return null;
+
+  let json = null;
+  try { json = await res.json(); } catch (_) { /* empty or non-JSON body */ }
+
+  if (res.status === 401 && auth && !quiet) {
+    // Token expired or revoked server-side: drop it and sign in again.
+    sessionStorage.removeItem('id_token');
+    renderAuth();
+    goToAuth('login', 'api_401');
+  }
+  if (!res.ok) {
+    const e = (json && json.error) || {};
+    throw new ApiError(res.status, e.code || 'ERROR',
+      e.message || 'Algo salió mal. Intenta de nuevo.', e);
+  }
+  return json ? json.data : null;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PERSONALIZACIÓN — Lambda jfc-personalizacion (RDS)
+   Rules (reserved numbers, blocked words, patches, prices) live in
+   RDS and are enforced by the Lambda; the page only previews.
+   ═══════════════════════════════════════════════════════════════ */
+let CUSTOM = {
+  skus: new Set(), precios: {}, parches: [], reservados: [],
+  reglas: { nombre_max: 12, numero_min: 1, numero_max: 99 }
+};
+let myCustoms = [];      // the signed-in user's saved personalizations
+let customSku = null;    // jersey open in the dialog
+
+async function loadCustomOptions() {
+  try {
+    const o = await api('/personalizaciones/opciones');
+    CUSTOM = {
+      skus: new Set(o.productos.map(p => p.sku)),
+      precios: Object.fromEntries(o.productos.map(p => [p.sku, p.precio])),
+      parches: o.parches,
+      reservados: o.dorsales_reservados,
+      reglas: o.reglas
+    };
+  } catch (err) {
+    console.warn('[personalización] opciones no disponibles:', err.message);
+  }
+}
+
+async function loadMyCustoms() {
+  myCustoms = [];
+  if (!session) return;
+  try {
+    myCustoms = await api('/personalizaciones', { auth: true, quiet: true }) || [];
+  } catch (err) {
+    console.warn('[personalización] no se pudieron leer:', err.message);
+  }
+}
+
+/* Back of the jersey: same silhouette as jersey(), name arched over a
+   big number. Only palette colors and escaped text reach the markup. */
+function jerseyBack(c1, c2, nombre, numero, placeholder) {
+  const edge = 'rgba(0,0,0,.18)';
+  const fade = placeholder ? ' opacity=".4"' : '';
+  const size = nombre.length <= 6 ? 14 : nombre.length <= 9 ? 11 : 9;
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img">
+    <defs><path id="jfcNameArc" d="M58 76 Q100 60 142 76"/></defs>
+    <path d="M62 30 40 44 24 78l24 14 8-14v92h88V78l8 14 24-14-16-34-22-14-16 12h-16z" fill="${c1}" stroke="${edge}" stroke-width="2"/>
+    <path d="M84 34c5 5 10 7 16 7s11-2 16-7" fill="none" stroke="${c2}" stroke-width="4" opacity=".9"/>
+    <text font-family="Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="${size}"
+          letter-spacing="1.2" fill="${c2}" stroke="${edge}" stroke-width=".4"${fade}>
+      <textPath href="#jfcNameArc" startOffset="50%" text-anchor="middle">${esc(nombre)}</textPath>
+    </text>
+    <text x="100" y="148" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif"
+          font-weight="800" font-size="64" fill="${c2}" stroke="${edge}" stroke-width=".8"${fade}>${esc(numero)}</text>
+  </svg>`;
+}
+
+function openCustomizer(sku) {
+  if (!session) { goToAuth('login', 'personalizacion'); return; }
+  customSku = sku;
+  const p = PRODUCTS.find(x => x.sku === sku);
+  const mine = myCustoms.find(c => c.sku === sku);
+
+  $('#customProduct').textContent = p ? p.name : sku;
+  $('#customName').value = mine ? mine.nombre : '';
+  $('#customNumber').value = mine ? mine.numero : '';
+  $('#customPatch').innerHTML = CUSTOM.parches.map(pa =>
+    `<option value="${esc(pa.codigo)}">${esc(pa.nombre)}${pa.precio ? ` (+${money(pa.precio)})` : ''}</option>`).join('');
+  $('#customPatch').value = mine ? mine.parche : 'NINGUNO';
+  $('#customError').textContent = '';
+
+  updateCustomPreview();
+  renderMyCustoms();
+  $('#customDlg').showModal();
+  analytics.track('select_content', { content_type: 'personalizacion', item_id: sku });
+}
+
+function updateCustomPreview() {
+  const p = PRODUCTS.find(x => x.sku === customSku) || {};
+  const nombre = $('#customName').value.trim().replace(/\s+/g, ' ').toUpperCase();
+  const numero = $('#customNumber').value.trim();
+  $('#customPreview').innerHTML = jerseyBack(
+    p.c1 || PALETTE.red, p.c2 || PALETTE.white,
+    nombre || 'TU NOMBRE', numero || '10', !nombre && !numero);
+
+  const reservado = CUSTOM.reservados.find(r => String(r.numero) === numero);
+  $('#customHint').textContent = reservado ? reservado.motivo : '';
+
+  const base = CUSTOM.precios[customSku] || p.price || 0;
+  const parche = CUSTOM.parches.find(x => x.codigo === $('#customPatch').value) || { nombre: 'Sin parche', precio: 0 };
+  $('#customPrice').innerHTML = `
+    <div class="price-line"><span>Camiseta</span><span>${money(base)}</span></div>
+    <div class="price-line"><span>Nombre y número</span><span>Gratis</span></div>
+    <div class="price-line"><span>${esc(parche.nombre)}</span><span>${parche.precio ? money(parche.precio) : '—'}</span></div>
+    <div class="price-line total"><span>Total</span><span>${money(base + parche.precio)}</span></div>`;
+}
+
+function renderMyCustoms() {
+  const box = $('#customMine');
+  if (!myCustoms.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3>Mis personalizaciones</h3>` + myCustoms.map(c => `
+    <div class="mine-item">
+      <span><strong>${esc(c.nombre)} ${esc(c.numero)}</strong> · ${esc(c.producto)}
+        ${c.parche !== 'NINGUNO' ? ` · ${esc(c.parche_nombre)}` : ''} · ${money(c.precio_final)}</span>
+      <button type="button" data-del-custom="${esc(c.id)}">Eliminar</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-del-custom]').forEach(b =>
+    b.addEventListener('click', () => deleteCustom(b.dataset.delCustom)));
+}
+
+async function deleteCustom(id) {
+  try {
+    await api(`/personalizaciones/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
+    myCustoms = myCustoms.filter(c => String(c.id) !== String(id));
+    renderMyCustoms();
+    renderGrid();
+    renderCart();
+    toast('Personalización eliminada');
+  } catch (err) {
+    $('#customError').textContent = err.message;
+  }
+}
+
+$('#customForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#customSave');
+  btn.disabled = true;
+  $('#customError').textContent = '';
+  try {
+    // Sent as typed: validation is the Lambda's job, and its messages are shown as-is.
+    const saved = await api('/personalizaciones', {
+      method: 'POST', auth: true,
+      body: {
+        sku: customSku,
+        nombre: $('#customName').value,
+        numero: $('#customNumber').value.trim(),
+        parche: $('#customPatch').value
+      }
+    });
+    myCustoms = [saved, ...myCustoms.filter(c => c.sku !== saved.sku)];
+    renderGrid();
+    renderCart();
+    $('#customDlg').close();
+    toast(`Guardado: ${saved.nombre} ${saved.numero} en ${saved.producto}`);
+    analytics.track('customize_item', {
+      currency: 'COP', value: saved.precio_final,
+      item_id: saved.sku, patch: saved.parche
+    });
+  } catch (err) {
+    $('#customError').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+['#customName', '#customNumber', '#customPatch'].forEach(s =>
+  $(s).addEventListener('input', () => {
+    $('#customError').textContent = '';   // the last server message no longer applies
+    updateCustomPreview();
+  }));
+$('#customClose').addEventListener('click', () => $('#customDlg').close());
+$('#customDlg').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.close();   // backdrop
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   BOLETERÍA — "boleteria" container on OpenShift, via API Gateway
+
+   The container picks the best block of adjacent seats, holds it for
+   10 minutes (a MySQL primary key makes double-selling impossible)
+   and issues signed QR tickets. The map polls occupancy every 5 s,
+   but only while the section is on screen and the tab is visible.
+   ═══════════════════════════════════════════════════════════════ */
+const STANDS = [
+  { codigo: 'OCCIDENTAL', nombre: 'Occidental' },
+  { codigo: 'ORIENTAL',   nombre: 'Oriental' },
+  { codigo: 'NORTE',      nombre: 'Norte' },
+  { codigo: 'SUR',        nombre: 'Sur' }
+];
+const standName = c => (STANDS.find(s => s.codigo === c) || { nombre: c }).nombre;
+
+const tix = {
+  matches: [], match: null, stand: 'OCCIDENTAL',
+  secciones: [], hold: null, tickets: [],
+  countdown: null, poll: null, onScreen: false, loading: false
+};
+
+const fmtMatchDate = iso => new Date(iso).toLocaleString('es-CO', {
+  timeZone: 'America/Bogota', weekday: 'short', day: 'numeric', month: 'short',
+  hour: 'numeric', minute: '2-digit'
+});
+const fmtInt = n => Number(n).toLocaleString('es-CO');
+
+function seatsLabel(nums) {
+  const s = [...nums].sort((a, b) => a - b);
+  if (s.length === 1) return `Silla ${s[0]}`;
+  return s[s.length - 1] - s[0] === s.length - 1
+    ? `Sillas ${s[0]}–${s[s.length - 1]}`
+    : `Sillas ${s.join(', ')}`;
+}
+
+/* The QR SVG is generated by our own service (segno); still, only a
+   plain <svg> with no scripts or handlers is ever put in the page. */
+const safeSvg = s => (typeof s === 'string' && /^<svg[\s>]/.test(s) && !/<script|\son\w+=/i.test(s)) ? s : '';
+
+function showTixUnavailable(unavailable) {
+  $('#tixUnavailable').hidden = !unavailable;
+  $('#matches').hidden = unavailable;
+  $('#tixLayout').hidden = unavailable || !tix.match;
+}
+
+async function loadMatches() {
+  try {
+    tix.matches = await api('/boleteria/partidos') || [];
+  } catch (err) {
+    console.warn('[boletería] no disponible:', err.message);
+    showTixUnavailable(true);
+    return;
+  }
+  showTixUnavailable(false);
+  renderMatches();
+  if (tix.matches.length) selectMatch(tix.matches[0].id);
+}
+
+function renderMatches() {
+  $('#matches').innerHTML = tix.matches.map(m => {
+    const desde = Math.min(...m.tribunas.map(t => t.precio).filter(Boolean));
+    return `
+    <button class="match" data-match="${esc(m.id)}" aria-pressed="${!!tix.match && tix.match.id === m.id}">
+      <span class="comp">${esc(m.competencia)}</span>
+      <strong>Junior vs ${esc(m.rival)}</strong>
+      <span class="when">${esc(fmtMatchDate(m.fecha_hora))} · Estadio Metropolitano</span>
+      <span class="from">Desde ${money(desde)}</span>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('[data-match]').forEach(b =>
+    b.addEventListener('click', () => selectMatch(Number(b.dataset.match))));
+}
+
+async function selectMatch(id) {
+  tix.match = tix.matches.find(m => m.id === id) || null;
+  tix.secciones = [];
+  tix.hold = null;
+  clearInterval(tix.countdown);
+  $('#tixError').textContent = '';
+  renderMatches();
+  renderStandOptions();
+  renderHold();
+  $('#tixLayout').hidden = !tix.match;
+  $('#stadiumMap').innerHTML = '';
+  if (!tix.match) return;
+  analytics.track('select_content', { content_type: 'partido', item_id: String(id) });
+  await refreshAvailability();
+  if (session) loadActiveHold();
+  syncPolling();
+}
+
+function standStats(codigo) {
+  const secs = tix.secciones.filter(s => s.tribuna === codigo);
+  if (!secs.length) {
+    const t = tix.match && tix.match.tribunas.find(x => x.codigo === codigo);
+    return t ? { libres: t.libres, total: t.total } : { libres: 0, total: 0 };
+  }
+  return secs.reduce((a, s) => ({ libres: a.libres + s.libres, total: a.total + s.total }), { libres: 0, total: 0 });
+}
+
+function renderStandOptions() {
+  if (!tix.match) { $('#standOptions').innerHTML = ''; return; }
+  $('#standOptions').innerHTML = STANDS.map(s => {
+    const t = tix.match.tribunas.find(x => x.codigo === s.codigo) || {};
+    const st = standStats(s.codigo);
+    return `
+    <button type="button" class="stand-opt" data-stand="${s.codigo}" aria-pressed="${tix.stand === s.codigo}">
+      <strong>${s.nombre}</strong>
+      <span class="p">${t.precio ? money(t.precio) : '—'}</span> · ${fmtInt(st.libres)} libres
+    </button>`;
+  }).join('');
+  document.querySelectorAll('[data-stand]').forEach(b =>
+    b.addEventListener('click', () => selectStand(b.dataset.stand)));
+}
+
+function selectStand(codigo) {
+  if (tix.stand === codigo) return;
+  tix.stand = codigo;
+  renderStandOptions();
+  paintStadium();
+  analytics.track('select_content', { content_type: 'tribuna', item_id: codigo });
+}
+
+/* ── Live stadium map ─────────────────────────────────────────────
+   Top-down Metropolitano: Occidental (main stand) along the bottom,
+   Oriental on top, Norte and Sur behind the goals. Section 1 of each
+   stand is at the same end the seat map in RDS uses. */
+const PITCH = { x: 170, y: 120, w: 300, h: 200 };
+const STAND_DEPTH = 70, STAND_GAP = 14;
+
+function sectionRect(s, count) {
+  if (s.tribuna === 'OCCIDENTAL' || s.tribuna === 'ORIENTAL') {
+    const w = PITCH.w / count;
+    const y = s.tribuna === 'OCCIDENTAL'
+      ? PITCH.y + PITCH.h + STAND_GAP
+      : PITCH.y - STAND_GAP - STAND_DEPTH;
+    return { x: PITCH.x + (s.orden - 1) * w + 1, y, w: w - 2, h: STAND_DEPTH };
+  }
+  const h = PITCH.h / count;
+  const x = s.tribuna === 'NORTE'
+    ? PITCH.x - STAND_GAP - STAND_DEPTH
+    : PITCH.x + PITCH.w + STAND_GAP;
+  return { x, y: PITCH.y + (s.orden - 1) * h + 1, w: STAND_DEPTH, h: h - 2 };
+}
+
+function buildStadium() {
+  const counts = {};
+  tix.secciones.forEach(s => { counts[s.tribuna] = (counts[s.tribuna] || 0) + 1; });
+  const P = PITCH, line = 'fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="1.5"';
+  const secs = tix.secciones.map(s => {
+    const r = sectionRect(s, counts[s.tribuna]);
+    return `<rect class="sec" data-sec="${s.codigo}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="2"
+                  tabindex="0" role="button"><title></title></rect>`;
+  }).join('');
+  $('#stadiumMap').innerHTML = `
+  <svg viewBox="50 0 540 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapa de ocupación del estadio">
+    <rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" rx="3" fill="#3f8f5a"/>
+    <rect x="${P.x + 8}" y="${P.y + 8}" width="${P.w - 16}" height="${P.h - 16}" ${line}/>
+    <line x1="${P.x + P.w / 2}" y1="${P.y + 8}" x2="${P.x + P.w / 2}" y2="${P.y + P.h - 8}" ${line}/>
+    <circle cx="${P.x + P.w / 2}" cy="${P.y + P.h / 2}" r="24" ${line}/>
+    <rect x="${P.x + 8}" y="${P.y + 55}" width="42" height="90" ${line}/>
+    <rect x="${P.x + P.w - 50}" y="${P.y + 55}" width="42" height="90" ${line}/>
+    ${secs}
+    <text class="stand-label" data-label="ORIENTAL" x="320" y="24" text-anchor="middle">ORIENTAL</text>
+    <text class="stand-label" data-label="OCCIDENTAL" x="320" y="428" text-anchor="middle">OCCIDENTAL</text>
+    <text class="stand-label" data-label="NORTE" x="70" y="220" text-anchor="middle" transform="rotate(-90 70 220)">NORTE</text>
+    <text class="stand-label" data-label="SUR" x="572" y="220" text-anchor="middle" transform="rotate(90 572 220)">SUR</text>
+  </svg>`;
+
+  $('#stadiumMap').querySelectorAll('.sec').forEach(el => {
+    const codigo = Number(el.dataset.sec);
+    const show = () => showReadout(codigo);
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('focus', show);
+    el.addEventListener('click', () => { show(); selectStand(sectionOf(codigo).tribuna); });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); selectStand(sectionOf(codigo).tribuna); }
+    });
+  });
+}
+
+const sectionOf = codigo => tix.secciones.find(s => s.codigo === codigo);
+
+/* Light pink (empty) → store red → near-black red (full). */
+const RAMP = [[0, [249, 225, 228]], [0.6, [208, 2, 27]], [1, [77, 0, 9]]];
+function occupancyColor(f) {
+  f = Math.max(0, Math.min(1, f));
+  for (let i = 1; i < RAMP.length; i++) {
+    const [f1, c1] = RAMP[i - 1], [f2, c2] = RAMP[i];
+    if (f <= f2) {
+      const t = (f - f1) / (f2 - f1);
+      return `rgb(${c1.map((v, k) => Math.round(v + (c2[k] - v) * t)).join(',')})`;
+    }
+  }
+  return 'rgb(77,0,9)';
+}
+
+function mySections() {
+  const matchId = tix.match && tix.match.id;
+  const hold = new Set(tix.hold && tix.hold.estado === 'RETENIDA' ? [tix.hold.seccion] : []);
+  const sold = new Set(tix.tickets.filter(t => t.partido.id === matchId).map(t => t.seccion));
+  return { hold, sold };
+}
+
+function paintStadium() {
+  const svg = $('#stadiumMap svg');
+  if (!svg) return;
+  const mine = mySections();
+  tix.secciones.forEach(s => {
+    const el = svg.querySelector(`[data-sec="${s.codigo}"]`);
+    if (!el) return;
+    const ocupada = s.total ? (s.vendidas + s.retenidas) / s.total : 1;
+    el.setAttribute('fill', occupancyColor(ocupada));
+    el.classList.toggle('dim', s.tribuna !== tix.stand);
+    el.classList.toggle('mine-hold', mine.hold.has(s.codigo));
+    el.classList.toggle('mine-sold', mine.sold.has(s.codigo) && !mine.hold.has(s.codigo));
+    const txt = `Sección ${s.codigo} · ${standName(s.tribuna)} · ${fmtInt(s.libres)} libres de ${fmtInt(s.total)}`;
+    el.setAttribute('aria-label', txt);
+    el.querySelector('title').textContent = txt;
+  });
+  svg.querySelectorAll('[data-label]').forEach(t =>
+    t.classList.toggle('on', t.dataset.label === tix.stand));
+}
+
+function showReadout(codigo) {
+  const s = sectionOf(codigo);
+  if (!s) return;
+  const pct = s.total ? Math.round((s.vendidas + s.retenidas) / s.total * 100) : 0;
+  $('#mapReadout').textContent =
+    `Sección ${s.codigo} · ${standName(s.tribuna)}: ${fmtInt(s.libres)} libres de ${fmtInt(s.total)} (${pct}% ocupada` +
+    (s.retenidas ? `, ${fmtInt(s.retenidas)} retenidas ahora mismo)` : ')');
+}
+
+async function refreshAvailability() {
+  if (!tix.match || tix.loading) return;
+  tix.loading = true;
+  const matchId = tix.match.id;
+  try {
+    const d = await api(`/boleteria/partidos/${matchId}/disponibilidad`);
+    if (!tix.match || tix.match.id !== matchId) return;    // switched match meanwhile
+    const firstPaint = !tix.secciones.length || !$('#stadiumMap svg');
+    tix.secciones = d.secciones;
+    if (firstPaint) buildStadium();
+    paintStadium();
+    renderStandOptions();
+    $('#mapUpdated').textContent = 'Actualizado ' + new Date(d.generado).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' });
+  } catch (err) {
+    $('#mapUpdated').textContent = 'Sin conexión con la boletería';
+  } finally {
+    tix.loading = false;
+  }
+}
+
+function syncPolling() {
+  const on = tix.onScreen && document.visibilityState === 'visible' && !!tix.match;
+  if (on && !tix.poll) tix.poll = setInterval(refreshAvailability, 5000);
+  if (!on && tix.poll) { clearInterval(tix.poll); tix.poll = null; }
+}
+
+/* ── Hold, countdown, confirm ───────────────────────────────────── */
+async function loadActiveHold() {
+  if (!session || !tix.match) return;
+  try {
+    tix.hold = await api(`/boleteria/reservas/activa?partido_id=${tix.match.id}`, { auth: true, quiet: true });
+  } catch (_) {
+    tix.hold = null;
+  }
+  renderHold();
+  paintStadium();
+}
+
+function renderHold() {
+  const box = $('#holdBox');
+  clearInterval(tix.countdown);
+  $('#tixSearch').textContent = session ? 'Buscar mejores sillas' : 'Inicia sesión para comprar';
+  if (!tix.hold) { box.innerHTML = ''; return; }
+  const h = tix.hold, b = h.busqueda;
+  box.innerHTML = `
+    <div class="hold">
+      <p class="cat-label">Sillas retenidas para ti · Reserva ${esc(h.codigo)}</p>
+      <p class="seats">Sección ${esc(h.seccion)} · Fila ${esc(h.fila)} · ${esc(seatsLabel(h.sillas))}</p>
+      <p>${esc(standName(h.tribuna))} · ${h.cantidad} × ${money(h.precio_unitario)} = <strong>${money(h.total)}</strong></p>
+      <p>Tiempo para confirmar: <span class="timer" id="holdTimer">--:--</span></p>
+      ${b ? `<p class="meta">Mejor bloque entre ${fmtInt(b.bloques_evaluados)} opciones en ${esc(b.milisegundos)} ms ·
+        vista ${esc(Math.round(b.puntaje_vista))}/100 · ${b.sillas_sueltas ? `${b.sillas_sueltas} silla(s) suelta(s)` : 'sin sillas sueltas'} ·
+        atendido por ${esc(b.pod)}</p>` : ''}
+      <div class="actions">
+        <button class="btn-primary" type="button" id="holdConfirm">Confirmar compra (pago simulado)</button>
+        <button class="btn-ghost" type="button" id="holdRelease">Liberar</button>
+      </div>
+    </div>`;
+  $('#holdConfirm').addEventListener('click', confirmHold);
+  $('#holdRelease').addEventListener('click', releaseHold);
+
+  const end = Date.now() + h.segundos_restantes * 1000;
+  const tick = () => {
+    const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    const el = $('#holdTimer');
+    if (el) el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    if (left === 0) {
+      tix.hold = null;
+      renderHold();
+      $('#tixError').textContent = 'Se acabaron los 10 minutos: las sillas volvieron a la venta.';
+      refreshAvailability();
+    }
+  };
+  tick();
+  tix.countdown = setInterval(tick, 1000);
+}
+
+async function confirmHold() {
+  const h = tix.hold;
+  if (!h) return;
+  $('#holdConfirm').disabled = true;
+  try {
+    const done = await api(`/boleteria/reservas/${h.id}/confirmar`, { method: 'POST', auth: true });
+    tix.hold = null;
+    renderHold();
+    analytics.track('purchase', {
+      transaction_id: done.codigo, currency: 'COP', value: done.total,
+      items: [{
+        item_id: `BOLETA-${done.partido.id}-${done.tribuna}`,
+        item_name: `Boleta Junior vs ${done.partido.rival} · ${standName(done.tribuna)}`,
+        item_category: 'boleteria', price: done.precio_unitario, quantity: done.cantidad
+      }]
+    });
+    toast(`¡Compra confirmada! ${done.cantidad} boleta(s) con código QR`);
+    await loadMyTickets(new Set((done.boletas || []).map(t => t.codigo)));
+    refreshAvailability();
+    $('#myTickets').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    if (err.status === 410) { tix.hold = null; renderHold(); refreshAvailability(); }
+    $('#tixError').textContent = err.message;
+    const btn = $('#holdConfirm');
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function releaseHold() {
+  const h = tix.hold;
+  if (!h) return;
+  try {
+    await api(`/boleteria/reservas/${h.id}`, { method: 'DELETE', auth: true });
+  } catch (err) {
+    $('#tixError').textContent = err.message;
+  }
+  tix.hold = null;
+  renderHold();
+  refreshAvailability();
+  paintStadium();
+}
+
+$('#tixForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!session) { goToAuth('login', 'boleteria'); return; }
+  if (!tix.match) return;
+  const btn = $('#tixSearch');
+  const max = $('#tixMax').value.trim();
+  btn.disabled = true;
+  $('#tixError').textContent = '';
+  try {
+    tix.hold = await api('/boleteria/reservas', {
+      method: 'POST', auth: true,
+      body: {
+        partido_id: tix.match.id,
+        tribuna: tix.stand,
+        cantidad: Number($('#tixQty').value),
+        precio_max: max ? Number(max) : undefined
+      }
+    });
+    renderHold();
+    refreshAvailability();
+    showReadout(tix.hold.seccion);
+    analytics.track('ticket_hold', {
+      currency: 'COP', value: tix.hold.total,
+      item_id: `BOLETA-${tix.match.id}-${tix.stand}`, quantity: tix.hold.cantidad
+    });
+  } catch (err) {
+    $('#tixError').textContent = err.message;
+    if (err.code === 'RESERVA_ACTIVA') loadActiveHold();
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── My tickets (QR) ────────────────────────────────────────────── */
+async function loadMyTickets(fresh) {
+  tix.tickets = [];
+  if (session) {
+    try {
+      tix.tickets = await api('/boleteria/mis-boletas', { auth: true, quiet: true }) || [];
+    } catch (err) {
+      console.warn('[boletería] boletas no disponibles:', err.message);
+    }
+  }
+  renderTickets(fresh || new Set());
+  paintStadium();
+}
+
+function renderTickets(fresh) {
+  const box = $('#myTickets');
+  if (!tix.tickets.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <div class="tickets-head">
+      <h3>Mis boletas (${tix.tickets.length})</h3>
+      <button class="btn-ghost" type="button" id="printTickets">Imprimir / guardar PDF</button>
+    </div>
+    <div class="ticket-list" id="ticketList">
+      ${tix.tickets.map(t => `
+      <article class="ticket${fresh.has(t.codigo) ? ' new' : ''}">
+        <div class="t-info">
+          <span class="comp">${esc(t.partido.competencia)}</span>
+          <strong>Junior vs ${esc(t.partido.rival)}</strong>
+          <span>${esc(fmtMatchDate(t.partido.fecha_hora))} · Estadio Metropolitano</span>
+          <span class="t-seat">${esc(standName(t.tribuna))} · Sección ${esc(t.seccion)} · Fila ${esc(t.fila)} · Silla ${esc(t.silla)}</span>
+          <span>${money(t.precio)}${t.titular ? ` · ${esc(t.titular)}` : ''}</span>
+          <span class="t-code">${esc(t.codigo)}</span>
+        </div>
+        <div class="t-qr" aria-label="Código QR de la boleta ${esc(t.codigo)}">${safeSvg(t.qr_svg)}</div>
+      </article>`).join('')}
+    </div>`;
+  $('#printTickets').addEventListener('click', printTickets);
+}
+
+function printTickets() {
+  $('#printArea').innerHTML =
+    `<h2 style="font-size:1.1rem;text-transform:uppercase;margin-bottom:12px">Junior FC · Mis boletas</h2>
+     <div class="ticket-list">${$('#ticketList').innerHTML}</div>`;
+  document.body.classList.add('printing');
+  window.print();
+}
+window.addEventListener('afterprint', () => {
+  document.body.classList.remove('printing');
+  $('#printArea').innerHTML = '';
+});
+
+function initBoleteria() {
+  renderHold();
+  loadMatches();
+  loadMyTickets();
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      tix.onScreen = entries.some(e => e.isIntersecting);
+      if (tix.onScreen) refreshAvailability();
+      syncPolling();
+    }).observe($('#boleteria'));
+  } else {
+    tix.onScreen = true;
+  }
+  document.addEventListener('visibilitychange', syncPolling);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    WIRING
    ═══════════════════════════════════════════════════════════════ */
 $('#cartBtn').addEventListener('click', () => openCart(true));
@@ -1531,7 +2513,7 @@ $('#searchInput').addEventListener('input', e => {
 function renderNav() {
   $('#mainNav').innerHTML = CATEGORIES
     .map(c => `<a href="#catalogo" data-nav="${esc(c.slug)}">${esc(c.name)}</a>`)
-    .join('');
+    .join('') + '<a href="#boleteria">Boletería</a>';
 
   document.querySelectorAll('#mainNav [data-nav]').forEach(a =>
     a.addEventListener('click', () => {
@@ -1616,6 +2598,14 @@ window.addEventListener('scroll', () => {
 
   $('#wishCount').textContent = wishlist.size;
   $('#wishCount').hidden = wishlist.size === 0;
+
+  /* Backend features load after the catalog is on screen, so a slow or
+     stopped backend never delays (or breaks) the store itself. */
+  Promise.all([loadCustomOptions(), loadMyCustoms()]).then(() => {
+    renderGrid();
+    renderCart();
+  });
+  initBoleteria();
 
   analytics.track('cms_content_loaded', {
     content_source: data.source,

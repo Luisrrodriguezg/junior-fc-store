@@ -1,0 +1,356 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Junior FC store backend. One API Gateway HTTP API (Cognito JWT authorizer) in front of
+  the jfc-personalizacion Lambda and the "boleteria" container running on OpenShift, both
+  backed by one RDS MySQL 8.4 instance.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-0f270e44e2d3f8efd
+    Description: VPC for RDS (this account's default VPC; its subnets are public).
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-0b46083f39e924263,subnet-05060e53e66183b20,subnet-0a66685e530f9c6dc,subnet-0d9ea6ce56e0959c0
+    Description: Subnets for the DB subnet group (2+ AZs).
+  DbMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: RDS master password. Used only by jfc-db-migrate.
+  AppDbPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Password of the least-privilege jfc_app user (Lambda and OpenShift).
+  GatewaySecret:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Sent by API Gateway as x-gateway-secret; the OpenShift service rejects requests without it.
+  BoleteriaUrl:
+    Type: String
+    Default: none
+    Description: Host of the OpenShift Route (no https://). "none" = the /boleteria routes are not created.
+  CognitoUserPoolId:
+    Type: String
+    Default: us-west-2_TxSoTZ2BF
+  CognitoClientId:
+    Type: String
+    Default: 36hh283aab5pa8daoifu7aecpl
+  StoreOrigin:
+    Type: String
+    Default: https://d2c5kwdca3zpk9.cloudfront.net
+
+Conditions:
+  HasBoleteria: !Not [!Equals [!Ref BoleteriaUrl, none]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    CodeUri: src/
+    Environment:
+      Variables:
+        DB_HOST: !GetAtt Database.Endpoint.Address
+        DB_PORT: !GetAtt Database.Endpoint.Port
+        DB_NAME: jfc
+
+Resources:
+  # ─────────────────────────────────────────────────────────────── RDS
+  # The OpenShift Developer Sandbox runs outside AWS with changing egress IPs, so the instance is
+  # publicly reachable. What protects it: TLS is mandatory (parameter group), passwords are long and
+  # random, the services use a user that can only read/write rows, and the instance is stopped when
+  # not in use.
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: jfc RDS MySQL - 3306 from anywhere (TLS-only, see template)
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+          Description: Lambda (outside VPC) and OpenShift Sandbox
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: jfc RDS subnets
+      SubnetIds: !Ref SubnetIds
+
+  DbParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: jfc MySQL 8.4 - TLS required
+      Family: mysql8.4
+      Parameters:
+        require_secure_transport: "1"
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBInstanceIdentifier: jfc-mysql
+      Engine: mysql
+      EngineVersion: "8.4.9"
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: "20"
+      StorageType: gp3
+      StorageEncrypted: true
+      MultiAZ: false
+      PubliclyAccessible: true
+      BackupRetentionPeriod: 0
+      DeletionProtection: false
+      DBName: jfc
+      MasterUsername: jfc_admin
+      MasterUserPassword: !Ref DbMasterPassword
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      DBParameterGroupName: !Ref DbParameterGroup
+      VPCSecurityGroups: [!Ref DbSecurityGroup]
+
+  # ─────────────────────────────────────────────────────────────── Lambdas
+  # Outside the VPC: RDS is reachable over TLS anyway, and without VPC ENIs the stack deploys and
+  # deletes in minutes.
+  PersonalizacionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jfc-personalizacion
+      Handler: personalizacion.handler
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          DB_USER: jfc_app
+          DB_PASSWORD: !Ref AppDbPassword
+
+  PersonalizacionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/jfc-personalizacion
+      RetentionInDays: 7
+
+  MigrateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jfc-db-migrate
+      Handler: migrate.handler
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          DB_USER: jfc_admin
+          DB_PASSWORD: !Ref DbMasterPassword
+          APP_DB_USER: jfc_app
+          APP_DB_PASSWORD: !Ref AppDbPassword
+
+  MigrateLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/jfc-db-migrate
+      RetentionInDays: 7
+
+  # ─────────────────────────────────────────────────────────────── API Gateway
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: junior-fc-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: [!Ref StoreOrigin, "http://localhost:8080"]
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
+        ExposeHeaders: [x-served-by]
+        MaxAge: 600
+
+  CognitoAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref HttpApi
+      Name: cognito-jwt
+      AuthorizerType: JWT
+      IdentitySource: ["$request.header.Authorization"]
+      JwtConfiguration:
+        Issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPoolId}"
+        Audience: [!Ref CognitoClientId]
+
+  ApiAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/apigateway/junior-fc-api
+      RetentionInDays: 7
+
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogs.Arn
+        Format: >-
+          {"requestId":"$context.requestId","ip":"$context.identity.sourceIp","route":"$context.routeKey",
+          "status":"$context.status","latencyMs":"$context.responseLatency",
+          "integrationStatus":"$context.integrationStatus","user":"$context.authorizer.claims.sub",
+          "error":"$context.integrationErrorMessage"}
+
+  # Lambda: personalization
+  PersonalizacionIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt PersonalizacionFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  PersonalizacionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PersonalizacionFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*"
+
+  RouteOpciones:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /personalizaciones/opciones
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${PersonalizacionIntegration}"
+
+  RouteListar:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /personalizaciones
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${PersonalizacionIntegration}"
+
+  RouteGuardar:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /personalizaciones
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${PersonalizacionIntegration}"
+
+  RouteEliminar:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: DELETE /personalizaciones/{id}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${PersonalizacionIntegration}"
+
+  # OpenShift: ticketing. Every integration overwrites x-gateway-secret, so the Route only answers
+  # traffic that came through here; authenticated ones also overwrite the user headers from the
+  # verified JWT, so a client can't claim to be someone else.
+  BoleteriaPartidosIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: GET
+      IntegrationUri: !Sub "https://${BoleteriaUrl}"
+      PayloadFormatVersion: "1.0"
+      RequestParameters:
+        "overwrite:path": /boleteria/partidos
+        "overwrite:header.x-gateway-secret": !Ref GatewaySecret
+
+  BoleteriaDisponibilidadIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: GET
+      IntegrationUri: !Sub "https://${BoleteriaUrl}"
+      PayloadFormatVersion: "1.0"
+      RequestParameters:
+        "overwrite:path": /boleteria/partidos/$request.path.id/disponibilidad
+        "overwrite:header.x-gateway-secret": !Ref GatewaySecret
+
+  BoleteriaAuthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: HTTP_PROXY
+      IntegrationMethod: ANY
+      IntegrationUri: !Sub "https://${BoleteriaUrl}"
+      PayloadFormatVersion: "1.0"
+      RequestParameters:
+        "overwrite:path": /boleteria/$request.path.proxy
+        "overwrite:header.x-gateway-secret": !Ref GatewaySecret
+        "overwrite:header.x-user-sub": $context.authorizer.claims.sub
+        "overwrite:header.x-user-email": $context.authorizer.claims.email
+
+  RoutePartidos:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /boleteria/partidos
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${BoleteriaPartidosIntegration}"
+
+  RouteDisponibilidad:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /boleteria/partidos/{id}/disponibilidad
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${BoleteriaDisponibilidadIntegration}"
+
+  # Explicit methods instead of ANY, so CORS preflight (OPTIONS) is answered by API Gateway itself.
+  RouteBoleteriaGet:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /boleteria/{proxy+}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${BoleteriaAuthIntegration}"
+
+  RouteBoleteriaPost:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /boleteria/{proxy+}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${BoleteriaAuthIntegration}"
+
+  RouteBoleteriaDelete:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: HasBoleteria
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: DELETE /boleteria/{proxy+}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${BoleteriaAuthIntegration}"
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for CONFIG.api.baseUrl in junior-fc.html
+    Value: !GetAtt HttpApi.ApiEndpoint
+  DbHost:
+    Description: RDS endpoint (DB_HOST for the OpenShift Secret)
+    Value: !GetAtt Database.Endpoint.Address
+  MigrateFunction:
+    Value: !Ref MigrateFunction

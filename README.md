@@ -73,6 +73,67 @@ payment gateway wired up.
 
 Deploys are targeted `aws s3 cp` uploads followed by a CloudFront invalidation — never a
 full `s3 sync` from this folder, since it still contains the legacy `junior.html` backup.
+`scripts/deploy-front.sh` does exactly that.
+
+## Backend (distributed computing course, part 2)
+
+Two backend features, both behind one API Gateway and one RDS database:
+
+| Feature | Runs on | Code |
+|---|---|---|
+| **Personalización de camiseta** (name + number, light) | AWS Lambda `jfc-personalizacion` | `backend/src/personalizacion.py` |
+| **Boletería** (best-seat engine, 10-min holds, QR tickets, live map; heavy) | Docker container on **OpenShift** Developer Sandbox, image `luisrro21/jfc-boleteria` on Docker Hub | `services/boleteria/` |
+
+```
+junior.html (CloudFront) ── Authorization: Bearer <Cognito id_token>
+   │
+   ▼
+API Gateway HTTP API "junior-fc-api"  (Cognito JWT authorizer, CORS for the CloudFront origin)
+   ├─ /personalizaciones…  ─────────────► Lambda jfc-personalizacion ──────────┐
+   └─ /boleteria/…  ── adds x-gateway-secret, x-user-sub/email ─► OpenShift Route ► 2 pods
+                                                                                │
+                                   RDS MySQL 8.4 jfc-mysql (TLS required) ◄─────┘
+```
+
+- **API Gateway is the only way in.** It verifies the Cognito token; the OpenShift service
+  refuses any request without the secret header the gateway adds, and takes the user's identity
+  only from headers the gateway overwrites.
+- **Everything lives in RDS**: products, patches, reserved numbers, blocked words,
+  personalizations, matches, prices, the 46,400-seat map, holds, reservations and tickets
+  (`backend/src/sql/schema.sql`). `jfc-db-migrate` creates and fills it.
+- **Why the ticketing service is a container:** it keeps the stadium map in memory, runs a
+  background worker that releases expired holds (only one replica works at a time, elected with a
+  MySQL `GET_LOCK`), and serializes purchases per stand with a named lock shared by all pods. The
+  `silla_partido` primary key makes selling a seat twice impossible.
+- **RDS is publicly reachable** because the Sandbox runs outside AWS. Mitigations: TLS is
+  mandatory (`require_secure_transport`), random 32-char passwords, the services use `jfc_app`
+  (row read/write only), and the instance is stopped when unused.
+
+### Runbook
+
+```bash
+scripts/sam-deploy.sh                    # RDS + Lambdas + API (secrets from .secrets/jfc.env)
+aws lambda invoke --function-name jfc-db-migrate --payload '{"accion":"migrar"}' \
+  --cli-binary-format raw-in-base64-out /dev/stdout      # also: "estado", "reiniciar_ventas"
+scripts/docker-publish.sh 1.0.1          # build + push the image (after `docker login`)
+scripts/sam-deploy.sh <route-host>       # point /boleteria at the OpenShift Route
+scripts/deploy-front.sh                  # publish junior-fc.html
+scripts/rds.sh status|start|stop         # RDS bills per hour: stop it when done
+```
+
+OpenShift is deployed by hand: see `openshift/README.md`.
+
+Local development ($0): `docker compose up -d mysql`, `.venv/bin/python scripts/migrate_local.py`,
+`docker compose up --build boleteria`. Tests: `.venv/bin/python -m pytest backend/tests services/boleteria/tests`.
+
+Secrets live only in `.secrets/jfc.env` and `openshift/secret.env` (both gitignored).
+
+### Costs
+
+Only RDS bills meaningfully (db.t4g.micro ≈ $0.016/h + public IPv4 ≈ $0.005/h + 20 GB storage).
+Lambda, API Gateway and the OpenShift Sandbox cost ~$0 at demo traffic. A stopped RDS instance
+restarts automatically after 7 days. After grading: `sam delete --stack-name junior-fc-backend`
+(removes RDS for good) and delete the Sandbox project.
 
 ## Status / next steps
 
