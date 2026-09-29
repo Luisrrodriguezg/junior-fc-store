@@ -1,0 +1,12 @@
+# Non-secret deploy settings. Secrets are passed by scripts/sam-deploy.sh from .secrets/jfc.env.
+version = 0.1
+
+[default.global.parameters]
+stack_name = "junior-fc-backend"
+region = "us-west-2"
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+resolve_s3 = true
+confirm_changeset = false
+fail_on_empty_changeset = false

@@ -1,0 +1,4 @@
+fastapi==0.141.1
+uvicorn==0.54.0
+PyMySQL==1.2.3
+segno==1.6.6

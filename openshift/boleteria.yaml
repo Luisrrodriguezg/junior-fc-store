@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boleteria
+  labels:
+    app: boleteria
+    app.kubernetes.io/part-of: junior-fc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: boleteria
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: boleteria
+    spec:
+      containers:
+        - name: boleteria
+          # Built by scripts/docker-publish.sh and published on Docker Hub.
+          image: docker.io/luisrro21/jfc-boleteria:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - secretRef:
+                name: boleteria-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          # Alive = the process answers. Ready = the 46k-seat map is loaded from RDS; until then the
+          # Service sends it no traffic.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boleteria
+  labels:
+    app: boleteria
+spec:
+  selector:
+    app: boleteria
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+# Public HTTPS URL that API Gateway calls. OpenShift fills in the host
+# (boleteria-<project>.apps.<cluster>.openshiftapps.com).
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: boleteria
+  labels:
+    app: boleteria
+  annotations:
+    # Spread requests across both pods instead of pinning a client to one (makes X-Served-By alternate).
+    haproxy.router.openshift.io/balance: roundrobin
+    haproxy.router.openshift.io/disable_cookies: "true"
+spec:
+  to:
+    kind: Service
+    name: boleteria
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
