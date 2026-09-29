@@ -77,7 +77,8 @@ full `s3 sync` from this folder, since it still contains the legacy `junior.html
 
 ## Backend (distributed computing course, part 2)
 
-Two backend features, both behind one API Gateway and one RDS database:
+Two backend features, both behind one API Gateway and one RDS database. **Full explanation of
+every connection, API Gateway, the Lambdas and Docker/OpenShift: [ARCHITECTURE.md](ARCHITECTURE.md).**
 
 | Feature | Runs on | Code |
 |---|---|---|
