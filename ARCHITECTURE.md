@@ -358,7 +358,7 @@ least-privilege user, and stopping the instance when unused.
 ### 9.1 AI moderation of jersey names (`jfc-personalizacion`)
 
 After the blocked-word list, the format rules, the reserved numbers and the patch check, the name
-goes to a Claude model on Amazon Bedrock (`jfc/moderacion.py`). It answers through a **forced tool
+goes to a Claude model (`jfc/moderacion.py`; Claude API or Amazon Bedrock, chosen in `jfc/ia.py`). It answers through a **forced tool
 call**, so the verdict is always one of a fixed set of categories (`OFENSIVO`, `ODIO`, `SEXUAL`,
 `VIOLENCIA_O_DROGAS`, `POLITICA_O_RELIGION`, `CLUB_RIVAL`, `MARCA_COMERCIAL`, `SIN_SENTIDO`,
 `PERMITIDO`).
@@ -366,13 +366,13 @@ call**, so the verdict is always one of a fixed set of categories (`OFENSIVO`, `
 - The name travels inside `<nombre>…</nombre>` and the prompt calls it data, never an instruction.
 - The message the fan reads comes from a table in the code, **never from the model**, so it can't
   echo the blocked word.
-- **Fails open:** if Bedrock is unreachable or answers something unexpected, the name passes (the list
+- **Fails open:** if the model is unreachable or answers something unexpected, the name passes (the list
   and the format rules already ran) and the failure is logged. Verdicts are cached per warm container.
 - It runs last, so only names that passed every free check cost a model call.
 
 ### 9.2 Juni, the ticketing agent (`jfc-agente`)
 
-`POST /agente/mensajes {mensaje, historial}` → a Bedrock tool-use loop (`jfc/conversacion.py`, at most
+`POST /agente/mensajes {mensaje, historial}` → a Claude tool-use loop (`jfc/conversacion.py`, at most
 6 model calls per message). The tools are the boletería endpoints: `listar_partidos`,
 `reservar_sillas`, `confirmar_compra`, `liberar_reserva`, `ver_mis_boletas`.
 
@@ -380,7 +380,7 @@ call**, so the verdict is always one of a fixed set of categories (`OFENSIVO`, `
   **caller's own token**, so the JWT check, throttling and ownership rules apply as in the browser.
 - **Stateless server:** the browser keeps the history (tool calls and results included) and sends it
   back every time. The server whitelists it (roles, block types, tool names, size) before it reaches
-  Bedrock.
+  the model.
 - **Payment needs a human "yes".** A reservation created in the same turn can't be confirmed:
   `confirmar_compra` on it returns `FALTA_CONFIRMACION`. That guard is code, not prompt.
 - The page (`junior-fc.html`, section JUNI) opens the right match, the hold box, the map and

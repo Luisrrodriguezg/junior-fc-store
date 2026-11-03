@@ -140,7 +140,7 @@ restarts automatically after 7 days. After grading: `sam delete --stack-name jun
 
 | Feature | Runs on | Code |
 |---|---|---|
-| **AI moderation** of the name printed on a jersey (Claude Haiku on Amazon Bedrock) | inside `jfc-personalizacion` | `backend/src/jfc/moderacion.py` |
+| **AI moderation** of the name printed on a jersey (Claude Haiku) | inside `jfc-personalizacion` | `backend/src/jfc/moderacion.py` |
 | **Juni**, the ticketing agent: asks what is missing, then reserves and buys through the store's own API | Lambda `jfc-agente`, route `POST /agente/mensajes`, chat widget in `junior-fc.html` | `backend/src/agente.py`, `backend/src/jfc/conversacion.py` |
 | **Expiry notice** (async): EventBridge every minute → scanner → SQS (+ dead-letter queue) → notifier → email (SES) and the class group (webhook) | Lambdas `jfc-avisos-escaner` / `jfc-avisos-notificador` | `backend/src/avisos_*.py`, `backend/src/jfc/avisos.py` |
 
@@ -148,11 +148,20 @@ Details and diagrams: [ARCHITECTURE.md](ARCHITECTURE.md#9-ai-agent-and-async-fea
 
 Before deploying these:
 
-- **Bedrock access.** Anthropic models need the one-time "use case details" form in the Bedrock
-  console, and new accounts start with a 0 tokens-per-minute quota for every model
-  (Service Quotas → Amazon Bedrock → request an increase). Until then moderation lets every name
-  through (it fails open) and Juni answers "no disponible". The model ids are the stack parameters
-  `ModeloModeracion` and `ModeloAgente`.
+- **Model access.** The two AI features speak one request shape (`backend/src/jfc/ia.py`) and run on
+  either provider:
+  - **Claude API** (what this project uses): put `ANTHROPIC_API_KEY=sk-ant-...` in `.secrets/jfc.env`;
+    `scripts/sam-deploy.sh` passes it as the `ClaudeApiKey` stack parameter and the Lambdas call
+    `api.anthropic.com`. The key lives in the Lambda environment (not Secrets Manager, to avoid the
+    monthly fee), so keep the key's spending limit low and delete the key after the demo.
+  - **Amazon Bedrock** (when `ANTHROPIC_API_KEY` is absent): needs the one-time "use case details"
+    form in the Bedrock console and a tokens-per-minute quota above 0 (Service Quotas → Amazon
+    Bedrock). New accounts start at 0; until then moderation lets every name through (it fails open)
+    and Juni answers "no disponible".
+
+  The model ids are the stack parameters `ModeloModeracion` (Haiku 5.5, which also supports the forced
+  tool call) and `ModeloAgente` (Sonnet 5.5); a Bedrock prefix such as `us.anthropic.` is stripped
+  for the Claude API.
 - **Email (optional).** Verify a sender in SES (the account starts in the sandbox, so recipients
   must be verified too) and put `AVISOS_REMITENTE=you@example.com` in `.secrets/jfc.env`.
 - **Class group (optional).** Put `AVISOS_WEBHOOK=<url>` in `.secrets/jfc.env`: a Discord or Slack

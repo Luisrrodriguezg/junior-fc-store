@@ -50,6 +50,11 @@ Parameters:
     Type: String
     Default: us.anthropic.claude-sonnet-5-5
     Description: Bedrock inference profile behind the ticketing agent (Juni).
+  ClaudeApiKey:
+    Type: String
+    Default: none
+    NoEcho: true
+    Description: Claude API key. When set, both AI features call the Claude API instead of Bedrock (model ids are used without the "us.anthropic." prefix). "none" = use Bedrock.
   AvisosActivos:
     Type: String
     Default: "true"
@@ -68,6 +73,7 @@ Parameters:
 Conditions:
   HasBoleteria: !Not [!Equals [!Ref BoleteriaUrl, none]]
   AvisosOn: !Equals [!Ref AvisosActivos, "true"]
+  UsaClaudeApi: !Not [!Equals [!Ref ClaudeApiKey, none]]
 
 Globals:
   Function:
@@ -143,13 +149,15 @@ Resources:
     Properties:
       FunctionName: jfc-personalizacion
       Handler: personalizacion.handler
-      MemorySize: 256
+      MemorySize: 512
       Timeout: 15
       Environment:
         Variables:
           DB_USER: jfc_app
           DB_PASSWORD: !Ref AppDbPassword
           MODERACION_MODEL_ID: !Ref ModeloModeracion
+          IA_PROVEEDOR: !If [UsaClaudeApi, anthropic, bedrock]
+          ANTHROPIC_API_KEY: !If [UsaClaudeApi, !Ref ClaudeApiKey, ""]
       Policies:
         - Statement:
             - Effect: Allow
@@ -171,12 +179,14 @@ Resources:
     Properties:
       FunctionName: jfc-agente
       Handler: agente.handler
-      MemorySize: 256
+      MemorySize: 512
       Timeout: 28
       Environment:
         Variables:
           API_BASE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
           AGENTE_MODEL_ID: !Ref ModeloAgente
+          IA_PROVEEDOR: !If [UsaClaudeApi, anthropic, bedrock]
+          ANTHROPIC_API_KEY: !If [UsaClaudeApi, !Ref ClaudeApiKey, ""]
       Policies:
         - Statement:
             - Effect: Allow

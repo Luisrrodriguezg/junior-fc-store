@@ -29,6 +29,9 @@ AVISOS_REMITENTE="${AVISOS_REMITENTE:-none}"
 AVISOS_WEBHOOK="${AVISOS_WEBHOOK:-none}"
 AVISOS_ACTIVOS="${AVISOS_ACTIVOS:-true}"
 mascara_webhook="$AVISOS_WEBHOOK"; [[ "$mascara_webhook" == none ]] && mascara_webhook="__sin_webhook__"
+# Claude API key for the AI features (jfc.env: ANTHROPIC_API_KEY=sk-ant-...). Leave it out to use Bedrock.
+CLAUDE_API_KEY="${ANTHROPIC_API_KEY:-none}"
+mascara_clave="$CLAUDE_API_KEY"; [[ "$mascara_clave" == none ]] && mascara_clave="__sin_clave__"
 
 cd backend
 sam build --cached
@@ -41,8 +44,9 @@ sam deploy --no-progressbar --parameter-overrides \
   "AvisosRemitente=$AVISOS_REMITENTE" \
   "AvisosWebhook=$AVISOS_WEBHOOK" \
   "AvisosActivos=$AVISOS_ACTIVOS" \
+  "ClaudeApiKey=$CLAUDE_API_KEY" \
   | grep -v -i "parameter overrides" \
-  | sed -e "s/$DB_MASTER_PASSWORD/***/g" -e "s/$APP_DB_PASSWORD/***/g" -e "s/$GATEWAY_SECRET/***/g" -e "s|$mascara_webhook|***|g"
+  | sed -e "s/$DB_MASTER_PASSWORD/***/g" -e "s/$APP_DB_PASSWORD/***/g" -e "s/$GATEWAY_SECRET/***/g" -e "s|$mascara_webhook|***|g" -e "s|$mascara_clave|***|g"
 
 aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
   --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output text
