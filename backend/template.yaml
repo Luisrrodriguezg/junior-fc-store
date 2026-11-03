@@ -42,9 +42,32 @@ Parameters:
   StoreOrigin:
     Type: String
     Default: https://d2c5kwdca3zpk9.cloudfront.net
+  ModeloModeracion:
+    Type: String
+    Default: us.anthropic.claude-haiku-5-5
+    Description: Bedrock inference profile that moderates jersey names. Empty turns AI moderation off.
+  ModeloAgente:
+    Type: String
+    Default: us.anthropic.claude-sonnet-5-5
+    Description: Bedrock inference profile behind the ticketing agent (Juni).
+  AvisosActivos:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Runs the per-minute scan for holds about to expire. Set to false while RDS is stopped.
+  AvisosRemitente:
+    Type: String
+    Default: none
+    Description: SES-verified sender address for the notices. "none" = no email.
+  AvisosWebhook:
+    Type: String
+    Default: none
+    NoEcho: true
+    Description: Discord, Slack or Telegram webhook URL of the class group. "none" = no group message.
 
 Conditions:
   HasBoleteria: !Not [!Equals [!Ref BoleteriaUrl, none]]
+  AvisosOn: !Equals [!Ref AvisosActivos, "true"]
 
 Globals:
   Function:
@@ -121,16 +144,130 @@ Resources:
       FunctionName: jfc-personalizacion
       Handler: personalizacion.handler
       MemorySize: 256
-      Timeout: 10
+      Timeout: 15
       Environment:
         Variables:
           DB_USER: jfc_app
           DB_PASSWORD: !Ref AppDbPassword
+          MODERACION_MODEL_ID: !Ref ModeloModeracion
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - arn:aws:bedrock:*::foundation-model/anthropic.*
+                - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
 
   PersonalizacionLogs:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/lambda/jfc-personalizacion
+      RetentionInDays: 7
+
+  # Juni, the ticketing agent. It has no database access: its tools call this same API (below) with
+  # the caller's own token. The timeout stays under the 30 s API Gateway allows an integration.
+  AgenteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jfc-agente
+      Handler: agente.handler
+      MemorySize: 256
+      Timeout: 28
+      Environment:
+        Variables:
+          API_BASE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+          AGENTE_MODEL_ID: !Ref ModeloAgente
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - arn:aws:bedrock:*::foundation-model/anthropic.*
+                - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+
+  AgenteLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/jfc-agente
+      RetentionInDays: 7
+
+  # ── Asynchronous "your hold is about to expire" notice ──
+  # EventBridge (every minute) → scanner → SQS → notifier → email + class group.
+  AvisosDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: jfc-avisos-fallidos
+
+  AvisosQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: jfc-avisos
+      # At least 6x the notifier's timeout, as AWS recommends for Lambda event sources.
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AvisosDlq.Arn
+        maxReceiveCount: 3
+
+  AvisosEscanerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jfc-avisos-escaner
+      Handler: avisos_escaner.handler
+      MemorySize: 256
+      Timeout: 20
+      Environment:
+        Variables:
+          DB_USER: jfc_app
+          DB_PASSWORD: !Ref AppDbPassword
+          AVISOS_QUEUE_URL: !Ref AvisosQueue
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt AvisosQueue.QueueName
+      Events:
+        CadaMinuto:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+            Enabled: !If [AvisosOn, true, false]
+
+  AvisosEscanerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/jfc-avisos-escaner
+      RetentionInDays: 7
+
+  AvisosNotificadorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jfc-avisos-notificador
+      Handler: avisos_notificador.handler
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          DB_USER: jfc_app
+          DB_PASSWORD: !Ref AppDbPassword
+          AVISOS_REMITENTE: !Ref AvisosRemitente
+          AVISOS_WEBHOOK: !Ref AvisosWebhook
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: ses:SendEmail
+              Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+      Events:
+        Cola:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt AvisosQueue.Arn
+            BatchSize: 5
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: 2
+
+  AvisosNotificadorLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/jfc-avisos-notificador
       RetentionInDays: 7
 
   MigrateFunction:
@@ -185,6 +322,7 @@ Resources:
 
   DefaultStage:
     Type: AWS::ApiGatewayV2::Stage
+    DependsOn: RouteAgente
     Properties:
       ApiId: !Ref HttpApi
       StageName: $default
@@ -192,6 +330,11 @@ Resources:
       DefaultRouteSettings:
         ThrottlingBurstLimit: 100
         ThrottlingRateLimit: 50
+      # Every agent message is a paid model call, so its route gets a much tighter limit.
+      RouteSettings:
+        "POST /agente/mensajes":
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
       AccessLogSettings:
         DestinationArn: !GetAtt ApiAccessLogs.Arn
         Format: >-
@@ -251,6 +394,33 @@ Resources:
       AuthorizationType: JWT
       AuthorizerId: !Ref CognitoAuthorizer
       Target: !Sub "integrations/${PersonalizacionIntegration}"
+
+  # Lambda: ticketing agent
+  AgenteIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AgenteFunction.Arn
+      PayloadFormatVersion: "2.0"
+      TimeoutInMillis: 29000
+
+  AgentePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AgenteFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*"
+
+  RouteAgente:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /agente/mensajes
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoAuthorizer
+      Target: !Sub "integrations/${AgenteIntegration}"
 
   # OpenShift: ticketing. Every integration overwrites x-gateway-secret, so the Route only answers
   # traffic that came through here; authenticated ones also overwrite the user headers from the
@@ -354,3 +524,6 @@ Outputs:
     Value: !GetAtt Database.Endpoint.Address
   MigrateFunction:
     Value: !Ref MigrateFunction
+  AvisosFailedQueueUrl:
+    Description: Dead-letter queue of the expiry notices (notices that failed 3 times land here)
+    Value: !Ref AvisosDlq

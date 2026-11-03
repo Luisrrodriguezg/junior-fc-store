@@ -3,7 +3,8 @@
 Routes (API Gateway HTTP API, payload 2.0):
   GET    /personalizaciones/opciones   public: personalizable jerseys, patches, rules
   GET    /personalizaciones            the signed-in user's personalizations
-  POST   /personalizaciones            create or update one (one per user and jersey)
+  POST   /personalizaciones            create or update one (one per user and jersey); the name is
+                                       checked against the blocked-word list and then by an AI model
   DELETE /personalizaciones/{id}       delete one of the user's own
 
 The user is always the `sub` claim of the Cognito token that API Gateway's JWT authorizer already
@@ -17,7 +18,7 @@ import time
 
 import pymysql
 
-from jfc import db, validacion
+from jfc import db, moderacion, validacion
 from jfc.respuestas import ErrorApi, error, ok
 
 log = logging.getLogger()
@@ -118,6 +119,10 @@ def guardar(event):
         parche = cur.fetchone()
         if not parche:
             raise ErrorApi(400, "PARCHE_INVALIDO", "Ese parche no está disponible.")
+
+        # Last, because it is the only check that costs money: names the list and the format rules
+        # already rejected never reach the model.
+        moderacion.verificar(nombre)
 
         # Name and number are free for members, as the store's membership section promises;
         # only the optional patch adds to the jersey's price.

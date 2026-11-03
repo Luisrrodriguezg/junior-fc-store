@@ -24,6 +24,12 @@ case "${1:-}" in
   *)               boleteria_url="${1#https://}"; boleteria_url="${boleteria_url%%/*}" ;;
 esac
 
+# Optional settings for the expiry notices (see README): leave them out of jfc.env to disable.
+AVISOS_REMITENTE="${AVISOS_REMITENTE:-none}"
+AVISOS_WEBHOOK="${AVISOS_WEBHOOK:-none}"
+AVISOS_ACTIVOS="${AVISOS_ACTIVOS:-true}"
+mascara_webhook="$AVISOS_WEBHOOK"; [[ "$mascara_webhook" == none ]] && mascara_webhook="__sin_webhook__"
+
 cd backend
 sam build --cached
 # SAM echoes parameter overrides in its summary; drop that line so secrets never reach the terminal.
@@ -32,8 +38,11 @@ sam deploy --no-progressbar --parameter-overrides \
   "AppDbPassword=$APP_DB_PASSWORD" \
   "GatewaySecret=$GATEWAY_SECRET" \
   "BoleteriaUrl=$boleteria_url" \
+  "AvisosRemitente=$AVISOS_REMITENTE" \
+  "AvisosWebhook=$AVISOS_WEBHOOK" \
+  "AvisosActivos=$AVISOS_ACTIVOS" \
   | grep -v -i "parameter overrides" \
-  | sed -e "s/$DB_MASTER_PASSWORD/***/g" -e "s/$APP_DB_PASSWORD/***/g" -e "s/$GATEWAY_SECRET/***/g"
+  | sed -e "s/$DB_MASTER_PASSWORD/***/g" -e "s/$APP_DB_PASSWORD/***/g" -e "s/$GATEWAY_SECRET/***/g" -e "s|$mascara_webhook|***|g"
 
 aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
   --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output text

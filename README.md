@@ -136,6 +136,31 @@ Lambda, API Gateway and the OpenShift Sandbox cost ~$0 at demo traffic. A stoppe
 restarts automatically after 7 days. After grading: `sam delete --stack-name junior-fc-backend`
 (removes RDS for good) and delete the Sandbox project.
 
+### AI, agent and async features (part 3)
+
+| Feature | Runs on | Code |
+|---|---|---|
+| **AI moderation** of the name printed on a jersey (Claude Haiku on Amazon Bedrock) | inside `jfc-personalizacion` | `backend/src/jfc/moderacion.py` |
+| **Juni**, the ticketing agent: asks what is missing, then reserves and buys through the store's own API | Lambda `jfc-agente`, route `POST /agente/mensajes`, chat widget in `junior-fc.html` | `backend/src/agente.py`, `backend/src/jfc/conversacion.py` |
+| **Expiry notice** (async): EventBridge every minute → scanner → SQS (+ dead-letter queue) → notifier → email (SES) and the class group (webhook) | Lambdas `jfc-avisos-escaner` / `jfc-avisos-notificador` | `backend/src/avisos_*.py`, `backend/src/jfc/avisos.py` |
+
+Details and diagrams: [ARCHITECTURE.md](ARCHITECTURE.md#9-ai-agent-and-async-features).
+
+Before deploying these:
+
+- **Bedrock access.** Anthropic models need the one-time "use case details" form in the Bedrock
+  console, and new accounts start with a 0 tokens-per-minute quota for every model
+  (Service Quotas → Amazon Bedrock → request an increase). Until then moderation lets every name
+  through (it fails open) and Juni answers "no disponible". The model ids are the stack parameters
+  `ModeloModeracion` and `ModeloAgente`.
+- **Email (optional).** Verify a sender in SES (the account starts in the sandbox, so recipients
+  must be verified too) and put `AVISOS_REMITENTE=you@example.com` in `.secrets/jfc.env`.
+- **Class group (optional).** Put `AVISOS_WEBHOOK=<url>` in `.secrets/jfc.env`: a Discord or Slack
+  incoming webhook, or Telegram's `https://api.telegram.org/bot<token>/sendMessage?chat_id=<id>`.
+- **RDS stopped?** The per-minute scanner skips quietly, but set `AVISOS_ACTIVOS=false` in
+  `.secrets/jfc.env` and redeploy to switch the schedule off until the next session.
+- After the first deploy, run the migration once so the `aviso_reserva` table exists.
+
 ## Status / next steps
 
 This is currently a single hand-edited HTML file per page, no build step. A React rewrite

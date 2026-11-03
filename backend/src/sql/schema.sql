@@ -140,3 +140,11 @@ CREATE TABLE IF NOT EXISTS boleta (
   KEY ix_boleta_reserva (reserva_id),
   CONSTRAINT fk_boleta_reserva FOREIGN KEY (reserva_id) REFERENCES reserva (id)
 );
+
+-- Memory of the "your hold is about to expire" notices already queued: one row per reservation, so
+-- the per-minute scanner never queues the same notice twice. Deleting a reservation deletes its row.
+CREATE TABLE IF NOT EXISTS aviso_reserva (
+  reserva_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  creado     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_aviso_reserva FOREIGN KEY (reserva_id) REFERENCES reserva (id) ON DELETE CASCADE
+);

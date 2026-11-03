@@ -99,7 +99,7 @@ def migrar(conn):
 
 def estado(conn):
     tablas = ["producto", "parche", "dorsal_reservado", "palabra_bloqueada", "personalizacion", "partido",
-              "tribuna", "seccion", "precio_tribuna", "silla", "silla_partido", "reserva", "boleta"]
+              "tribuna", "seccion", "precio_tribuna", "silla", "silla_partido", "reserva", "boleta", "aviso_reserva"]
     with conn.cursor() as cur:
         conteos = {}
         for tabla in tablas:

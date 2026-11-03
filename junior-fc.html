@@ -852,6 +852,80 @@
     body.printing .ticket-list { grid-template-columns: 1fr 1fr; }
     body.printing .ticket { border: 1px solid #999; border-left: 6px solid var(--red); }
   }
+
+  /* ── Juni: ticketing assistant (Lambda jfc-agente + Bedrock) ───── */
+  .juni-fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 180;
+    display: inline-flex; align-items: center; gap: 9px;
+    background: var(--red); color: #fff;
+    padding: 13px 18px;
+    border-radius: 999px;
+    font-size: 0.82rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+  }
+  .juni-fab:hover { background: var(--red-dark); }
+  .juni-fab:focus-visible, .juni button:focus-visible, .juni input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .juni {
+    position: fixed; right: 20px; bottom: 82px; z-index: 180;
+    width: min(380px, calc(100vw - 24px));
+    height: min(560px, calc(100dvh - 110px));
+    display: flex; flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  .juni[hidden] { display: none; }
+  .juni > header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--ink); color: #fff;
+    padding: 12px 14px;
+  }
+  .juni > header strong { display: block; font-size: 0.95rem; letter-spacing: 0.02em; }
+  .juni > header small { display: block; font-size: 0.72rem; opacity: 0.75; }
+  .juni > header .tools { display: flex; gap: 4px; }
+  .juni > header button { font-size: 0.72rem; font-weight: 700; padding: 6px 8px; border-radius: var(--radius); }
+  .juni > header button:hover { background: rgba(255,255,255,0.14); }
+  .juni-log {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 14px;
+    background: var(--wash);
+  }
+  .juni-msg {
+    max-width: 86%;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    font-size: 0.86rem; line-height: 1.45;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .juni-msg.bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); }
+  .juni-msg.me  { align-self: flex-end; background: var(--red); color: #fff; }
+  .juni-msg.err { align-self: stretch; max-width: none; background: #fff0f0; color: var(--red-dark); border: 1px solid #f3c4c9; font-size: 0.8rem; }
+  .juni-msg.wait { color: var(--body); font-style: italic; }
+  .juni-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 0; background: var(--wash); }
+  .juni-chips[hidden] { display: none; }
+  .juni-chips button {
+    font-size: 0.76rem; font-weight: 700; color: var(--red);
+    border: 1px solid var(--red); border-radius: 999px; padding: 5px 11px; background: var(--surface);
+  }
+  .juni-chips button:hover { background: var(--red); color: #fff; }
+  .juni form { display: flex; gap: 8px; padding: 12px 14px; background: var(--wash); }
+  .juni input {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 12px; font: inherit; font-size: 0.88rem; background: var(--surface);
+  }
+  .juni form button {
+    background: var(--ink); color: #fff; font-weight: 800; font-size: 0.8rem;
+    padding: 0 16px; border-radius: var(--radius);
+  }
+  .juni form button:disabled, .juni input:disabled { opacity: 0.55; cursor: not-allowed; }
+  @media (max-width: 520px) {
+    .juni { right: 12px; left: 12px; width: auto; bottom: 76px; }
+    .juni-fab { right: 12px; bottom: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -1145,6 +1219,31 @@
 
 <!-- Tickets are copied here only while printing, so the printout holds nothing else. -->
 <div id="printArea"></div>
+
+<!-- Juni: text assistant that reserves and buys tickets. Lambda jfc-agente, through API Gateway. -->
+<button class="juni-fab" id="juniFab" type="button" aria-expanded="false" aria-controls="juniPanel">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+  </svg>
+  Juni
+</button>
+<section class="juni" id="juniPanel" aria-label="Juni, asistente de boletería" hidden>
+  <header>
+    <div><strong>Juni</strong><small>Te ayudo a comprar boletas</small></div>
+    <div class="tools">
+      <button type="button" id="juniReset" title="Empezar una conversación nueva">Nueva</button>
+      <button type="button" id="juniClose" aria-label="Cerrar el chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="juni-log" id="juniLog" role="log" aria-live="polite"></div>
+  <div class="juni-chips" id="juniChips"></div>
+  <form id="juniForm" autocomplete="off">
+    <input id="juniInput" maxlength="1000" placeholder="Escribe tu mensaje" aria-label="Mensaje para Juni">
+    <button type="submit" id="juniSend">Enviar</button>
+  </form>
+</section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1765,6 +1864,7 @@ function signOut() {
   analytics.track('logout', { method: 'cognito_hosted_ui' });
   sessionStorage.removeItem('id_token');
   sessionStorage.removeItem('access_token');
+  sessionStorage.removeItem('juni_chat');   // the history holds this user's reservation ids
   const qs = new URLSearchParams({ client_id: c.clientId, logout_uri: c.logoutUri });
   window.location.assign(`https://${c.domain}/logout?${qs}`);
 }
@@ -2464,6 +2564,146 @@ function initBoleteria() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   JUNI — ticketing assistant (Lambda jfc-agente, Amazon Bedrock)
+
+   The server keeps no conversation: this page stores the history —
+   tool calls and results included, so Juni remembers the reservation
+   id it created — and sends it back with every message. The agent
+   calls the same /boleteria endpoints as the form above, with this
+   visitor's token, so what it does shows up in the hold box, the
+   stadium map and "Mis boletas" like any other purchase.
+   ═══════════════════════════════════════════════════════════════ */
+const JUNI_KEY = 'juni_chat';
+const JUNI_HELLO = 'Hola, soy Juni. Te ayudo a comprar boletas para los partidos del Junior. ¿Para cuál partido las quieres?';
+const JUNI_CHIPS = ['¿Qué partidos hay?', 'Quiero 2 boletas', 'Ver mis boletas'];
+const juni = { open: false, busy: false, history: [], log: [] };
+
+function juniSave() {
+  try { sessionStorage.setItem(JUNI_KEY, JSON.stringify({ history: juni.history, log: juni.log.slice(-60) })); } catch (_) { /* private mode */ }
+}
+function juniLoad() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(JUNI_KEY) || 'null');
+    if (saved && Array.isArray(saved.history) && Array.isArray(saved.log)) {
+      juni.history = saved.history;
+      juni.log = saved.log;
+    }
+  } catch (_) { /* corrupt or blocked: start clean */ }
+}
+
+/* textContent only: the model's reply is text we don't control. */
+function juniBubble(kind, text) {
+  const el = document.createElement('div');
+  el.className = `juni-msg ${kind}`;
+  el.textContent = text;
+  $('#juniLog').append(el);
+  el.scrollIntoView({ block: 'end' });
+  return el;
+}
+
+function juniRender() {
+  $('#juniLog').innerHTML = '';
+  juniBubble('bot', JUNI_HELLO);
+  juni.log.forEach(m => juniBubble(m.kind, m.text));
+  $('#juniChips').hidden = juni.log.length > 0;
+}
+
+function juniSetOpen(open) {
+  juni.open = open;
+  $('#juniPanel').hidden = !open;
+  $('#juniFab').setAttribute('aria-expanded', String(open));
+  if (open) {
+    juniRender();
+    $('#juniInput').focus();
+    analytics.track('select_content', { content_type: 'juni_chat', item_id: 'open' });
+  }
+}
+
+function juniReset() {
+  juni.history = [];
+  juni.log = [];
+  juniSave();
+  juniRender();
+}
+
+/* Bring the page in line with what the agent just did. */
+async function juniSync(acciones) {
+  const ok = acciones.filter(a => a.ok);
+  const reserved  = ok.find(a => a.herramienta === 'reservar_sillas');
+  const bought    = ok.find(a => a.herramienta === 'confirmar_compra');
+  const released  = ok.some(a => a.herramienta === 'liberar_reserva');
+  if (!reserved && !bought && !released) return;
+
+  if (reserved && reserved.partido_id && (!tix.match || tix.match.id !== reserved.partido_id)
+      && tix.matches.some(m => m.id === reserved.partido_id)) {
+    await selectMatch(reserved.partido_id);   // loads that match's hold and map
+  } else if (reserved) {
+    await loadActiveHold();
+  }
+  if (bought || released) { tix.hold = null; renderHold(); }
+  if (bought) {
+    analytics.track('purchase', { currency: 'COP', transaction_id: `juni-${Date.now()}`, items: [{ item_category: 'boleteria' }] });
+    toast('¡Compra confirmada! Tus boletas están en «Mis boletas»');
+    await loadMyTickets();
+  }
+  refreshAvailability();
+  paintStadium();
+}
+
+async function juniSend(text) {
+  if (juni.busy) return;
+  if (!session) { goToAuth('login', 'juni'); return; }
+  juni.busy = true;
+  $('#juniChips').hidden = true;
+  $('#juniInput').value = '';
+  $('#juniInput').disabled = true;
+  $('#juniSend').disabled = true;
+
+  juni.log.push({ kind: 'me', text });
+  juniBubble('me', text);
+  const wait = juniBubble('bot wait', 'Juni está escribiendo…');
+  analytics.track('juni_message', { length: text.length });
+
+  try {
+    const r = await api('/agente/mensajes', { method: 'POST', auth: true, body: { mensaje: text, historial: juni.history } });
+    juni.history = r.historial;
+    juni.log.push({ kind: 'bot', text: r.respuesta });
+    wait.remove();
+    juniBubble('bot', r.respuesta);
+    await juniSync(r.acciones || []);
+  } catch (err) {
+    wait.remove();
+    // The message never reached the model, so it must not stay in the replayed history.
+    juniBubble('err', err.message);
+    if (err.status === 400 && err.code === 'HISTORIAL_INVALIDO') { juni.history = []; }
+  } finally {
+    juniSave();
+    juni.busy = false;
+    $('#juniInput').disabled = false;
+    $('#juniSend').disabled = false;
+    $('#juniInput').focus();
+  }
+}
+
+function initJuni() {
+  juniLoad();
+  $('#juniChips').innerHTML = JUNI_CHIPS.map(c => `<button type="button">${esc(c)}</button>`).join('');
+  $('#juniChips').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (b) juniSend(b.textContent);
+  });
+  $('#juniFab').addEventListener('click', () => juniSetOpen(!juni.open));
+  $('#juniClose').addEventListener('click', () => { juniSetOpen(false); $('#juniFab').focus(); });
+  $('#juniReset').addEventListener('click', juniReset);
+  $('#juniForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const text = $('#juniInput').value.trim();
+    if (text) juniSend(text);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && juni.open) juniSetOpen(false); });
+}
+
+/* ═══════════════════════════════════════════════════════════════
    WIRING
    ═══════════════════════════════════════════════════════════════ */
 $('#cartBtn').addEventListener('click', () => openCart(true));
@@ -2606,6 +2846,7 @@ window.addEventListener('scroll', () => {
     renderCart();
   });
   initBoleteria();
+  initJuni();
 
   analytics.track('cms_content_loaded', {
     content_source: data.source,

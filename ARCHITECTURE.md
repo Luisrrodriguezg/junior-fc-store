@@ -9,6 +9,9 @@ functions, the Docker container on OpenShift, and the RDS database.
 
 Both go **through API Gateway** and both use **one RDS MySQL database**.
 
+Three more features sit on top (section 9): **AI moderation** of jersey names, **Juni**, a text agent
+that buys tickets, and an **asynchronous expiry notice** for ticket holds.
+
 ---
 
 ## 1. The big picture
@@ -101,6 +104,7 @@ An **HTTP API**, stage `$default` with auto-deploy. URL:
 | `GET /boleteria/{proxy+}` | Yes | OpenShift `boleteria` |
 | `POST /boleteria/{proxy+}` | Yes | OpenShift `boleteria` |
 | `DELETE /boleteria/{proxy+}` | Yes | OpenShift `boleteria` |
+| `POST /agente/mensajes` | Yes | Lambda `jfc-agente` (own throttle: 2 req/s, burst 5) |
 
 `{proxy+}` means "anything below this path", so one route covers `/boleteria/reservas`,
 `/boleteria/reservas/{id}/confirmar`, `/boleteria/mis-boletas`, and so on. The more specific public
@@ -344,6 +348,60 @@ service can be developed and tested at no cost before touching AWS or OpenShift.
 **Trade-off:** RDS is publicly reachable because the OpenShift Sandbox runs outside AWS with
 changing IP addresses. It's mitigated by TLS-only connections, long random passwords, a
 least-privilege user, and stopping the instance when unused.
+
+---
+
+---
+
+## 9. AI, agent and async features
+
+### 9.1 AI moderation of jersey names (`jfc-personalizacion`)
+
+After the blocked-word list, the format rules, the reserved numbers and the patch check, the name
+goes to a Claude model on Amazon Bedrock (`jfc/moderacion.py`). It answers through a **forced tool
+call**, so the verdict is always one of a fixed set of categories (`OFENSIVO`, `ODIO`, `SEXUAL`,
+`VIOLENCIA_O_DROGAS`, `POLITICA_O_RELIGION`, `CLUB_RIVAL`, `MARCA_COMERCIAL`, `SIN_SENTIDO`,
+`PERMITIDO`).
+
+- The name travels inside `<nombre>…</nombre>` and the prompt calls it data, never an instruction.
+- The message the fan reads comes from a table in the code, **never from the model**, so it can't
+  echo the blocked word.
+- **Fails open:** if Bedrock is unreachable or answers something unexpected, the name passes (the list
+  and the format rules already ran) and the failure is logged. Verdicts are cached per warm container.
+- It runs last, so only names that passed every free check cost a model call.
+
+### 9.2 Juni, the ticketing agent (`jfc-agente`)
+
+`POST /agente/mensajes {mensaje, historial}` → a Bedrock tool-use loop (`jfc/conversacion.py`, at most
+6 model calls per message). The tools are the boletería endpoints: `listar_partidos`,
+`reservar_sillas`, `confirmar_compra`, `liberar_reserva`, `ver_mis_boletas`.
+
+- **The agent has no database access.** Each tool is an HTTP call to API Gateway carrying the
+  **caller's own token**, so the JWT check, throttling and ownership rules apply as in the browser.
+- **Stateless server:** the browser keeps the history (tool calls and results included) and sends it
+  back every time. The server whitelists it (roles, block types, tool names, size) before it reaches
+  Bedrock.
+- **Payment needs a human "yes".** A reservation created in the same turn can't be confirmed:
+  `confirmar_compra` on it returns `FALTA_CONFIRMACION`. That guard is code, not prompt.
+- The page (`junior-fc.html`, section JUNI) opens the right match, the hold box, the map and
+  "Mis boletas" after the agent acts.
+
+### 9.3 Asynchronous expiry notice
+
+```
+EventBridge (rate 1 min) → jfc-avisos-escaner ──► SQS jfc-avisos ──► jfc-avisos-notificador ─┬► email (SES)
+        │                        │                     │ 3 failures                           └► class group (webhook)
+        │                        ▼                     ▼
+        │              RDS: INSERT IGNORE        SQS jfc-avisos-fallidos (DLQ)
+        │              INTO aviso_reserva
+```
+
+A hold lasts 10 minutes. Every minute the scanner finds holds in their last 2 minutes that have no row in
+`aviso_reserva`, **claims each one with `INSERT IGNORE`** (the primary key lets exactly one run win) and
+sends one SQS message per hold; if SQS fails it un-claims, so the next run retries inside the window. The
+notifier re-reads the hold and **drops the notice if it was paid or released**, then sends the email and a
+group message (with the address masked). SQS retries a failed message 3 times, then parks it in the DLQ.
+The buyer's request never waits for any of this. RDS stopped: the scanner logs a warning and returns.
 
 ---
 
