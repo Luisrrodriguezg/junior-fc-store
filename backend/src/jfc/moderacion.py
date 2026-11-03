@@ -51,7 +51,9 @@ letras repetidas, espacios, tildes cambiadas, al revés o por fonética ("hijuep
 - ODIO: racismo, xenofobia, homofobia, burlas a discapacidades o símbolos de odio (incluye "nazi", "kkk").
 - SEXUAL: contenido sexual explícito o alusiones sexuales groseras.
 - VIOLENCIA_O_DROGAS: apología de violencia, grupos criminales, armas o drogas.
-- POLITICA_O_RELIGION: lemas, partidos o figuras políticas actuales, y mensajes religiosos.
+- POLITICA_O_RELIGION: lemas, partidos, consignas o mensajes religiosos ("PETRO PRESIDENTE", \
+"VIVA CRISTO REY"). Un apellido suelto es PERMITIDO aunque también lo lleve un político (Uribe, Petro, \
+Santos).
 - CLUB_RIVAL: nombres, apodos o siglas de otros clubes de fútbol (Nacional, Millonarios, América, \
 Santa Fe, Real Madrid, Boca…), o burlas hacia Junior.
 - MARCA_COMERCIAL: marcas registradas (Nike, Coca-Cola, Rolex…).
