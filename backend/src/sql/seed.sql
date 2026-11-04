@@ -33,9 +33,15 @@ INSERT IGNORE INTO tribuna (codigo, nombre, orden) VALUES
 INSERT IGNORE INTO partido (id, rival, competencia, fecha_hora, estado) VALUES
   (1, 'Atlético Nacional', 'Liga Colombiana 2026-II · Fecha 14', '2026-10-05 00:30:00', 'EN_VENTA'),
   (2, 'América de Cali',   'Liga Colombiana 2026-II · Fecha 16', '2026-10-19 01:00:00', 'EN_VENTA'),
-  (3, 'Millonarios',       'Copa Colombia 2026 · Cuartos de final', '2026-11-01 22:00:00', 'EN_VENTA');
+  (3, 'Millonarios',       'Copa Colombia 2026 · Cuartos de final', '2026-11-01 22:00:00', 'EN_VENTA'),
+  (4, 'Deportivo Cali',    'Liga Colombiana 2026-II · Fecha 18', '2026-11-22 00:30:00', 'EN_VENTA'),
+  (5, 'Independiente Santa Fe', 'Liga Colombiana 2026-II · Cuadrangulares · Fecha 2', '2026-12-06 22:00:00', 'EN_VENTA'),
+  (6, 'Once Caldas',       'Liga Colombiana 2026-II · Cuadrangulares · Fecha 4', '2026-12-13 01:00:00', 'EN_VENTA');
 
 INSERT IGNORE INTO precio_tribuna (partido_id, tribuna, precio) VALUES
   (1, 'OCCIDENTAL', 180000), (1, 'ORIENTAL', 110000), (1, 'NORTE', 55000), (1, 'SUR', 55000),
   (2, 'OCCIDENTAL', 150000), (2, 'ORIENTAL',  90000), (2, 'NORTE', 45000), (2, 'SUR', 45000),
-  (3, 'OCCIDENTAL', 120000), (3, 'ORIENTAL',  75000), (3, 'NORTE', 40000), (3, 'SUR', 40000);
+  (3, 'OCCIDENTAL', 120000), (3, 'ORIENTAL',  75000), (3, 'NORTE', 40000), (3, 'SUR', 40000),
+  (4, 'OCCIDENTAL', 160000), (4, 'ORIENTAL',  95000), (4, 'NORTE', 48000), (4, 'SUR', 48000),
+  (5, 'OCCIDENTAL', 170000), (5, 'ORIENTAL', 100000), (5, 'NORTE', 50000), (5, 'SUR', 50000),
+  (6, 'OCCIDENTAL', 140000), (6, 'ORIENTAL',  85000), (6, 'NORTE', 42000), (6, 'SUR', 42000);
