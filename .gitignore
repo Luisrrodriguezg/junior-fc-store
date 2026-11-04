@@ -1,2 +1,10 @@
 .claude/settings.local.json
 .DS_Store
+.secrets/
+.venv/
+.aws-sam/
+backend/.aws-sam/
+__pycache__/
+.pytest_cache/
+openshift/secret.env
+openshift/secret.yaml

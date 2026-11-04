@@ -73,6 +73,102 @@ payment gateway wired up.
 
 Deploys are targeted `aws s3 cp` uploads followed by a CloudFront invalidation — never a
 full `s3 sync` from this folder, since it still contains the legacy `junior.html` backup.
+`scripts/deploy-front.sh` does exactly that.
+
+## Backend (distributed computing course, part 2)
+
+Two backend features, both behind one API Gateway and one RDS database. **Full explanation of
+every connection, API Gateway, the Lambdas and Docker/OpenShift: [ARCHITECTURE.md](ARCHITECTURE.md).**
+
+| Feature | Runs on | Code |
+|---|---|---|
+| **Personalización de camiseta** (name + number, light) | AWS Lambda `jfc-personalizacion` | `backend/src/personalizacion.py` |
+| **Boletería** (best-seat engine, 10-min holds, QR tickets, live map; heavy) | Docker container on **OpenShift** Developer Sandbox, image `luisrro21/jfc-boleteria` on Docker Hub | `services/boleteria/` |
+
+```
+junior.html (CloudFront) ── Authorization: Bearer <Cognito id_token>
+   │
+   ▼
+API Gateway HTTP API "junior-fc-api"  (Cognito JWT authorizer, CORS for the CloudFront origin)
+   ├─ /personalizaciones…  ─────────────► Lambda jfc-personalizacion ──────────┐
+   └─ /boleteria/…  ── adds x-gateway-secret, x-user-sub/email ─► OpenShift Route ► 2 pods
+                                                                                │
+                                   RDS MySQL 8.4 jfc-mysql (TLS required) ◄─────┘
+```
+
+- **API Gateway is the only way in.** It verifies the Cognito token; the OpenShift service
+  refuses any request without the secret header the gateway adds, and takes the user's identity
+  only from headers the gateway overwrites.
+- **Everything lives in RDS**: products, patches, reserved numbers, blocked words,
+  personalizations, matches, prices, the 46,400-seat map, holds, reservations and tickets
+  (`backend/src/sql/schema.sql`). `jfc-db-migrate` creates and fills it.
+- **Why the ticketing service is a container:** it keeps the stadium map in memory, runs a
+  background worker that releases expired holds (only one replica works at a time, elected with a
+  MySQL `GET_LOCK`), and serializes purchases per stand with a named lock shared by all pods. The
+  `silla_partido` primary key makes selling a seat twice impossible.
+- **RDS is publicly reachable** because the Sandbox runs outside AWS. Mitigations: TLS is
+  mandatory (`require_secure_transport`), random 32-char passwords, the services use `jfc_app`
+  (row read/write only), and the instance is stopped when unused.
+
+### Runbook
+
+```bash
+scripts/sam-deploy.sh                    # RDS + Lambdas + API (secrets from .secrets/jfc.env)
+aws lambda invoke --function-name jfc-db-migrate --payload '{"accion":"migrar"}' \
+  --cli-binary-format raw-in-base64-out /dev/stdout      # also: "estado", "reiniciar_ventas"
+scripts/docker-publish.sh 1.0.1          # build + push the image (after `docker login`)
+scripts/sam-deploy.sh <route-host>       # point /boleteria at the OpenShift Route
+scripts/deploy-front.sh                  # publish junior-fc.html
+scripts/rds.sh status|start|stop         # RDS bills per hour: stop it when done
+```
+
+OpenShift is deployed by hand: see `openshift/README.md`.
+
+Local development ($0): `docker compose up -d mysql`, `.venv/bin/python scripts/migrate_local.py`,
+`docker compose up --build boleteria`. Tests: `.venv/bin/python -m pytest backend/tests services/boleteria/tests`.
+
+Secrets live only in `.secrets/jfc.env` and `openshift/secret.env` (both gitignored).
+
+### Costs
+
+Only RDS bills meaningfully (db.t4g.micro ≈ $0.016/h + public IPv4 ≈ $0.005/h + 20 GB storage).
+Lambda, API Gateway and the OpenShift Sandbox cost ~$0 at demo traffic. A stopped RDS instance
+restarts automatically after 7 days. After grading: `sam delete --stack-name junior-fc-backend`
+(removes RDS for good) and delete the Sandbox project.
+
+### AI, agent and async features (part 3)
+
+| Feature | Runs on | Code |
+|---|---|---|
+| **AI moderation** of the name printed on a jersey (Claude Haiku) | inside `jfc-personalizacion` | `backend/src/jfc/moderacion.py` |
+| **Juni**, the ticketing agent: asks what is missing, then reserves and buys through the store's own API | Lambda `jfc-agente`, route `POST /agente/mensajes`, chat widget in `junior-fc.html` | `backend/src/agente.py`, `backend/src/jfc/conversacion.py` |
+| **Expiry notice** (async): EventBridge every minute → scanner → SQS (+ dead-letter queue) → notifier → email (SES) and the class group (webhook) | Lambdas `jfc-avisos-escaner` / `jfc-avisos-notificador` | `backend/src/avisos_*.py`, `backend/src/jfc/avisos.py` |
+
+Details and diagrams: [ARCHITECTURE.md](ARCHITECTURE.md#9-ai-agent-and-async-features).
+
+Before deploying these:
+
+- **Model access.** The two AI features speak one request shape (`backend/src/jfc/ia.py`) and run on
+  either provider:
+  - **Claude API** (what this project uses): put `ANTHROPIC_API_KEY=sk-ant-...` in `.secrets/jfc.env`;
+    `scripts/sam-deploy.sh` passes it as the `ClaudeApiKey` stack parameter and the Lambdas call
+    `api.anthropic.com`. The key lives in the Lambda environment (not Secrets Manager, to avoid the
+    monthly fee), so keep the key's spending limit low and delete the key after the demo.
+  - **Amazon Bedrock** (when `ANTHROPIC_API_KEY` is absent): needs the one-time "use case details"
+    form in the Bedrock console and a tokens-per-minute quota above 0 (Service Quotas → Amazon
+    Bedrock). New accounts start at 0; until then moderation lets every name through (it fails open)
+    and Juni answers "no disponible".
+
+  The model ids are the stack parameters `ModeloModeracion` (Haiku 5.5, which also supports the forced
+  tool call) and `ModeloAgente` (Sonnet 5.5); a Bedrock prefix such as `us.anthropic.` is stripped
+  for the Claude API.
+- **Email (optional).** Verify a sender in SES (the account starts in the sandbox, so recipients
+  must be verified too) and put `AVISOS_REMITENTE=you@example.com` in `.secrets/jfc.env`.
+- **Class group (optional).** Put `AVISOS_WEBHOOK=<url>` in `.secrets/jfc.env`: a Discord or Slack
+  incoming webhook, or Telegram's `https://api.telegram.org/bot<token>/sendMessage?chat_id=<id>`.
+- **RDS stopped?** The per-minute scanner skips quietly, but set `AVISOS_ACTIVOS=false` in
+  `.secrets/jfc.env` and redeploy to switch the schedule off until the next session.
+- After the first deploy, run the migration once so the `aviso_reserva` table exists.
 
 ## Status / next steps
 

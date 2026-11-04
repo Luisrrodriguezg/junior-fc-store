@@ -1,0 +1,35 @@
+# Local development stack ($0): MySQL 8.4 (same major as RDS) + the boleteria image.
+# Credentials here are throwaway local values, not the AWS ones.
+#
+#   docker compose up -d mysql
+#   .venv/bin/python scripts/migrate_local.py      # schema + seeds + seat map
+#   docker compose up --build boleteria
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: localroot
+      MYSQL_DATABASE: jfc
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-plocalroot"]
+      interval: 5s
+      retries: 20
+
+  boleteria:
+    build: ./services/boleteria
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: jfc
+      DB_USER: jfc_app
+      DB_PASSWORD: localapp
+      DB_SSL_MODE: require          # TLS without CA check: the container's cert is self-signed
+      GATEWAY_SECRET: local-gateway-secret
+      QR_HMAC_KEY: local-qr-key
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
